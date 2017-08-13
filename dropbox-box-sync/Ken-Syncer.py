@@ -3,8 +3,13 @@ import boxsdk
 import requests
 import json
 import os
+import sys
+import datetime
 
-//
+SENSITIVE_FILE_NAME = ''
+folders_to_sync = ['']
+folders_to_ignore = ['']
+db_access_token = ''
 dbx = dropbox.Dropbox(db_access_token)
 
 class Leaf():
@@ -40,15 +45,18 @@ def dropbox_list_all():
     return mega_dict
 
 files_to_change = dropbox_list_all()
-print files_to_change
+# print files_to_change
 
 ###################################### BOX ####################################
-//
+# box auth
+box_client_id=''
+box_client_secret=''
+box_id={}
 
 def secret_token(refresh_token):
     payload = {'grant_type':'refresh_token', 'refresh_token':refresh_token, 'client_id':box_client_id, 'client_secret': box_client_secret}
     r = requests.post('https://api.box.com/oauth2/token', payload)
-    with open('', 'r+') as f:
+    with open(SENSITIVE_FILE_NAME, 'r+') as f:
         f.seek(0)
         f.write(r.text)
         f.truncate()
@@ -56,7 +64,7 @@ def secret_token(refresh_token):
     print r.text
 
 def get_token():
-    with open('', 'r+') as f:
+    with open(SENSITIVE_FILE_NAME, 'r+') as f:
         data = json.load(f)
     f.close()
     return data
@@ -83,6 +91,35 @@ oauth = boxsdk.OAuth2(
 
 client = boxsdk.Client(oauth)
 # root_folder = client.folder(folder_id='0').get_items(limit=100, offset=0)
+list_to_create = []
+
+def log(message):
+    with open('log.txt', 'a') as f:
+        f.write(message + '\n')
+
+def sync_create_file(dropbox_path, box_folder_id):
+    file_name = dropbox_path[1:].split('/')[-1]
+    sys.stdout.write('Downloading from Dropbox -')
+    sys.stdout.flush()
+    with open('temp-'+file_name, 'wb') as temp_f:
+        metadata, res = dbx.files_download(dropbox_path)
+        temp_f.write(res.content)
+    sys.stdout.write(' Uploading to Box -')
+    sys.stdout.flush()
+    client.folder(folder_id=box_folder_id).upload('temp-'+file_name, file_name)
+    sys.stdout.write(' Done with ' + file_name + '\n')
+    sys.stdout.flush()
+    os.remove('temp-'+file_name)
+    log('Uploaded ' + file_name)
+
+def syncs_process():
+    counter = 1
+    log(str(datetime.datetime.now()))
+    for f in list_to_create:
+        print counter, '/', len(list_to_create), 'files left'
+        sync_create_file(f[0], f[1])
+        counter +=1
+
 def check_in_folder(folder, path):
     for f in folder:
         if f.type == 'file':
@@ -90,39 +127,32 @@ def check_in_folder(folder, path):
         else:
             check_in_folder(client.folder(folder_id=f.id).get_items(limit=100, offset=0), path+'/'+f.name)
 
-for folder in folders_to_sync:
+def recursive_box_check(list_of_item, current_box_folder_id, path):
     #for create only
-    files_in_dropbox = [ item.path for item in files_to_change[folder] if isinstance(item, Leaf)]
-    folders_in_dropbox = [ item for item in files_to_change[folder] if not isinstance(item, Leaf) ]
-    # print files_in_dropbox, folders_in_dropbox
-    items_in_box = client.folder(folder_id=box_id[folder]).get_items(limit=100, offset=0)
-    path = '/'+folder
+    files_in_dropbox = [ item.path for item in list_of_item if isinstance(item, Leaf)]
+    folders_in_dropbox = [ item for item in list_of_item if not isinstance(item, Leaf) ]
+    items_in_box = client.folder(folder_id=current_box_folder_id).get_items(limit=100, offset=0)
     files_in_box = [ path+'/'+f.name for f in items_in_box if f.type == 'file']
     folders_in_box = [f for f in items_in_box if f.type != 'file']
-    # print files_in_box, folders_in_box
     # upload from Dropbox to box
     for i in list(set(set(files_in_dropbox).difference(set(files_in_box)))):
-        file_name = i[1:].split('/')[-1]
-        print "Downloading from Dropbox"
-        with open('temp-'+file_name, 'wb') as temp_f:
-            metadata, res = dbx.files_download(i)
-            temp_f.write(res.content)
-        print "Uploading to Box"
-        client.folder(folder_id=box_id[folder]).upload('temp-'+file_name, file_name)
-        print "Done"
-        os.remove('temp-'+file_name)
+        list_to_create.append((i, current_box_folder_id))
 
+    for item in folders_in_dropbox:
+        for key in item.keys():
+            if key not in [f.name for f in folders_in_box]:
+                child = client.folder(folder_id=current_box_folder_id).create_subfolder(key)
+                recursive_box_check(item[key], child.id, path+'/'+key)
+            else:
+                folder_name = [f.name for f in folders_in_box]
+                index = folder_name.index(key)
+                box_f = folders_in_box[index]
+                recursive_box_check(item[key], box_f.id, path+'/'+key)
 
-    # path = '/'+folder
-    # for f in items_in_box:
-    #     if f.type == 'file':
-    #         if focus in checklist:
-    #             checklist.remove(focus)
-    #         print f.id + ' ' + path + '/'+ f.name +  ' ' + str(f.get()['modified_at'])
-    #     else:
-    #         check_in_folder(client.folder(folder_id=f.id).get_items(limit=100, offset=0), path+'/'+f.name)
-    # files_to_change[folder] = checklist
+for folder in folders_to_sync:
+    recursive_box_check(files_to_change[folder], box_id[folder], '/'+folder)
 
-# print files_to_change
+syncs_process()
+
 def main():
     print 'hello'
