@@ -7,11 +7,13 @@ public class build_tagger {
   public static String[] tags = new String[47];
   public static Map<String, Integer> tagID = new HashMap<String, Integer>();
   public static Set<String> vocabulary = new HashSet<String>();
+  // public static Map<String, ArrayList<Integer>> vocabularyMatrix = new HashMap<String, ArrayList<Integer>>();
 
   public static void initializeMatrix(){
     for(int i=0; i<47; i++){
       for(int j=0; j<47; j++){
         tagMatrix[i][j] = 0;
+        probabilityTagMatrix[i][j] = 0;
       }
     }
   }
@@ -32,19 +34,30 @@ public class build_tagger {
   }
 
   public static void printTagsMatrix(){
-    System.out.print("     ");
+    System.out.print("-, ");
     for(int i=0; i<=46; i++){
-      System.out.print(tags[i] + " ");
+      System.out.print(tags[i] + ", ");
     }
     System.out.println();
     for(int i=0; i<=46; i++){
-      System.out.print(tags[i]+ " ");
+      System.out.print(tags[i]+ ", ");
       for(int j=0; j<=46; j++){
-        System.out.print(tagMatrix[i][j] + " ");
+        System.out.print(tagMatrix[i][j] + ", ");
       }
       System.out.println();
     }
   }
+
+  // public static void printVocabMatrix(){
+  //   System.out.print("- ");
+  //   for(int i=1; i<=45; i++){
+  //     System.out.print(tags[i] + " ");
+  //   }
+  //   System.out.println();
+  //   for (Map.Entry entry : vocabularyMatrix.entrySet()) {
+  //       System.out.println(entry.getKey() + " " + entry.getValue());
+  //   }
+  // }
 
   public static void addCountToMatrix(String line){
     String[] segmented = line.split(" ");
@@ -63,6 +76,8 @@ public class build_tagger {
         tag = wordTag[1];
       }
       vocabulary.add(word);
+      // vocabularyMatrix.put(word, new ArrayList<Integer>(Collections.nCopies(45, 0)));
+      // vocabularyMatrix.get(word).add(tagID.get(tag)-1, )
       if(i==0){
         tagMatrix[tagID.get("<s>")][tagID.get(tag)]++;
       } else {
@@ -73,6 +88,54 @@ public class build_tagger {
     tagMatrix[tagID.get(tag)][tagID.get("</s>")]++;
   }
 
+  //For runTagger
+  //Smoothing
+  public static double[][] probabilityTagMatrix = new double[47][47];
+
+  public static void calculateProbabilityTagMatrix(){
+    // <-Tag1Tag2^
+    // probability of Tag2 given Tag1
+    // cTt is the tag bigram count Tag1Tag2
+    // cT is the frequency Tag1 appears (sum up column or row is ok)
+    // tT is the number of types of tags following T
+    // V is 45 so Z is V-tT
+    int vT = 45;
+    for(int i=0; i<46; i++){
+      double cT = 0;
+      double tT = 0;
+      for(int j=1; j<47; j++){
+        if(tagMatrix[i][j] > 0) {
+          tT++;
+          cT += tagMatrix[i][j];
+        }
+      }
+      double zT = vT - tT;
+      for(int j=1; j<47; j++){
+        double cTt = tagMatrix[i][j];
+        if(tagMatrix[i][j] > 0){
+          probabilityTagMatrix[i][j] = cTt / (cT + tT);
+        }else{
+          probabilityTagMatrix[i][j] = tT / ((cT + tT) * zT);
+        }
+      }
+    }
+  }
+
+  public static void printProbabilityTagsMatrix(){
+    System.out.print("-, ");
+    for(int i=0; i<=46; i++){
+      System.out.print(tags[i] + ", ");
+    }
+    System.out.println();
+    for(int i=0; i<=46; i++){
+      System.out.print(tags[i]+ ", ");
+      for(int j=0; j<=46; j++){
+        System.out.print(probabilityTagMatrix[i][j] + ", ");
+      }
+      System.out.println();
+    }
+  }
+  //
   public static void main(String[] args){
     String trainFileName = args[0];
     String devtFileName = args[1];
@@ -80,12 +143,10 @@ public class build_tagger {
     String line = null;
     initializeMatrix();
     readPenn();
-    // printTagsMatrix();
     try{
       BufferedReader br = new BufferedReader(new FileReader(trainFileName));
       while((line=br.readLine()) != null){
         addCountToMatrix(line);
-        // System.out.println(line);
       }
       // devt = new FileInputStream(devtFileName);
       // FileOutputStream out = new FileOutputStream(modelFileName);
@@ -94,9 +155,8 @@ public class build_tagger {
     }
     printTagsMatrix();
     System.out.println(vocabulary.size());
-    // Iterator<String> itr=vocabulary.iterator();
-    // while(itr.hasNext()){
-    //     System.out.println(itr.next());
-    // }
+    // printVocabMatrix();
+    calculateProbabilityTagMatrix();
+    printProbabilityTagsMatrix();
   }
 }
