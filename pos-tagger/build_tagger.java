@@ -6,6 +6,7 @@ public class build_tagger {
   public static int[][] tagMatrix = new int[47][47];
   public static String[] tags = new String[47];
   public static Map<String, Integer> tagID = new HashMap<String, Integer>();
+  public static Set<String> vocabulary = new HashSet<String>();
 
   public static void initializeMatrix(){
     for(int i=0; i<47; i++){
@@ -47,20 +48,29 @@ public class build_tagger {
 
   public static void addCountToMatrix(String line){
     String[] segmented = line.split(" ");
-    // String word = null;
-    // String tag = null;
+    String word = null;
+    String tag = null;
+    String prevTag = null;
     for(int i=0; i<segmented.length; i++){
-      // String[] wordTag = segmented[i].split("/");
-      // String word = wordTag[0];
-      // String tag = wordTag[1];
-      // System.out.print(word + "-->" + tag);
-      // if(i==0){
-        // tagMatrix[tagID.get("<s>")][tagID.get(tag)]++;
-      // }
-      System.out.print(segmented[i] + "     ");
+      String[] wordTag = segmented[i].split("/");
+      word = wordTag[0];
+      if(wordTag.length > 2){
+        for(int j=1; j<wordTag.length-1; j++){
+          word += "/" + wordTag[j];
+        }
+        tag = wordTag[wordTag.length-1];
+      }else{
+        tag = wordTag[1];
+      }
+      vocabulary.add(word);
+      if(i==0){
+        tagMatrix[tagID.get("<s>")][tagID.get(tag)]++;
+      } else {
+        tagMatrix[tagID.get(prevTag)][tagID.get(tag)]++;
+      }
+      prevTag = tag;
     }
-    // tagMatrix[tagID.get(tag)][tagID.get("</s>")]++;
-    System.out.println();
+    tagMatrix[tagID.get(tag)][tagID.get("</s>")]++;
   }
 
   public static void main(String[] args){
@@ -83,6 +93,10 @@ public class build_tagger {
         System.err.println(e + ": no file to read");
     }
     printTagsMatrix();
+    System.out.println(vocabulary.size());
+    // Iterator<String> itr=vocabulary.iterator();
+    // while(itr.hasNext()){
+    //     System.out.println(itr.next());
+    // }
   }
-
 }
