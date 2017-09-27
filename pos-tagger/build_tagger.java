@@ -6,13 +6,16 @@ public class build_tagger {
   public static String[] tags = new String[47];
   public static Map<String, Integer> tagID = new HashMap<String, Integer>();
   public static Set<String> vocabulary = new HashSet<String>();
-  public static Map<String, ArrayList<Integer>> vocabularyMatrix = new HashMap<String, ArrayList<Integer>>();
+  public static List<Map<String,Integer>> vocabularyMatrix = new ArrayList<Map<String,Integer>>();
 
   public static void initializeMatrix(){
     for(int i=0; i<47; i++){
       for(int j=0; j<47; j++){
         tagMatrix[i][j] = 0;
         probabilityTagMatrix[i][j] = 0;
+      }
+      if(i<45){
+        vocabularyMatrix.add(new HashMap<String, Integer>());
       }
     }
   }
@@ -47,14 +50,12 @@ public class build_tagger {
     }
   }
 
-  public static void printVocabMatrix(Map<String, ArrayList<Double>> matrix){
-    System.out.print("- ");
-    for(int i=1; i<=45; i++){
-      System.out.print(tags[i] + " ");
-    }
-    System.out.println();
-    for (Map.Entry entry : matrix.entrySet()) {
-        System.out.println(entry.getKey() + " " + entry.getValue());
+  public static void printVocabMatrix(List<Map<String,Double>> matrix){
+    for(int i=1; i<matrix.size(); i++){
+      System.out.println(tags[i]);
+      for(Map.Entry vocab : matrix.get(i-1).entrySet()){
+        System.out.println(vocab.getKey() + "->" + vocab.getValue());
+      }
     }
   }
 
@@ -75,15 +76,14 @@ public class build_tagger {
         tag = wordTag[1];
       }
 
-      if(vocabulary.contains(word)){
-        ArrayList<Integer> arr = vocabularyMatrix.get(word);
-        arr.set(tagID.get(tag)-1, arr.get(tagID.get(tag)-1)+1);
-        vocabularyMatrix.put(word, arr);
+      if(vocabularyMatrix.get(tagID.get(tag)-1).keySet().contains(word.toLowerCase())){
+        Map<String, Integer> vocabList = vocabularyMatrix.get(tagID.get(tag)-1);
+        int prevFreq = vocabList.get(word.toLowerCase());
+        vocabList.put(word.toLowerCase(), prevFreq+1);
       } else {
-        vocabulary.add(word);
-        ArrayList<Integer> arrOfOccurrence = new ArrayList<Integer>(Collections.nCopies(45, 0));
-        arrOfOccurrence.set(tagID.get(tag)-1, 1);
-        vocabularyMatrix.put(word, arrOfOccurrence);
+        vocabulary.add(word.toLowerCase());
+        Map<String, Integer> vocabList = vocabularyMatrix.get(tagID.get(tag)-1);
+        vocabList.put(word.toLowerCase(), 1);
       }
 
       if(i==0){
@@ -99,36 +99,29 @@ public class build_tagger {
   //For runTagger
   //Smoothing
   public static double[][] probabilityTagMatrix = new double[47][47];
-  public static Map<String, ArrayList<Double>> duplicateVocab = new HashMap<String, ArrayList<Double>>();
+  public static List<Map<String, Double>> duplicateVocab = new ArrayList<Map<String, Double>>();
 
   public static void smoothenVocabularyMatrix(){
-    int vT = 45;
-    for (Map.Entry<String, ArrayList<Integer>> vocab : vocabularyMatrix.entrySet()){
-      String word = vocab.getKey();
-      ArrayList<Double> freq = new ArrayList<Double>();
-      for(Integer num : vocab.getValue()){
-          freq.add(Double.valueOf(num));
-      }
+    // cTt=raw freq of word in that tag
+    // cT=total freq in that tag
+    // tT=unique words in that tag
+    // vT=vocab size. so zT=vT-tT
+    int vT = vocabulary.size();
+    for (int i=0; i<45; i++){
+      double tT = vocabularyMatrix.get(i).keySet().size();
       double cT = 0;
-      double tT = 0;
-      for(int i=0; i<45; i++){
-        if(freq.get(i) > 0){
-          tT++;
-          cT += freq.get(i);
-        }
-      }
       double zT = vT - tT;
-      for(int i=0; i<45; i++){
-        double cTt = freq.get(i);
-        if(freq.get(i) > 0){
-          freq.set(i, cTt / (cT + tT));
-        }else{
-          freq.set(i, tT / ((cT + tT) * zT));
-        }
-        duplicateVocab.put(word, freq);
+      duplicateVocab.add(new HashMap<String, Double>());
+      for(int k : vocabularyMatrix.get(i).values()){
+        cT += k;
       }
-      //vocabularyMatrix = duplicateVocab;
-      // System.out.println(vocab.getKey() + "/" + vocab.getValue());
+      Map<String, Double> newSet = duplicateVocab.get(i);
+      for(Map.Entry vocab : vocabularyMatrix.get(i).entrySet()){
+        double smoothedProb = (int) vocab.getValue() / (cT + tT);
+        newSet.put(String.valueOf(vocab.getKey()), smoothedProb);
+      }
+      double unseenProb = tT / ((cT + tT) * zT);
+      newSet.put("unknownUnseenWords", unseenProb);
     }
   }
 
@@ -139,7 +132,7 @@ public class build_tagger {
     // cT is the frequency Tag1 appears (sum up column or row is ok)
     // tT is the number of types of tags following T
     // V is 45 so Z is V-tT
-    int vT = 45;
+    int vT = 47;
     for(int i=0; i<46; i++){
       double cT = 0;
       double tT = 0;
@@ -197,8 +190,11 @@ public class build_tagger {
       ////
       bw.write(vocabulary.size() + "\n");
       ////
-      for (Map.Entry entry : duplicateVocab.entrySet()) {
+      for(int i=0; i<45; i++){
+        bw.write(tags[i+1]+"\n");
+        for (Map.Entry entry : duplicateVocab.get(i).entrySet()){
           bw.write(entry.getKey() + "-->" + entry.getValue() + "\n");
+        }
       }
 
     } catch(Exception e){
@@ -213,6 +209,7 @@ public class build_tagger {
   }
 
   public static void main(String[] args){
+    // java build_tagger sents.train sents.devt model_file
     String trainFileName = args[0];
     String devtFileName = args[1];
     String modelFileName = args[2];
@@ -227,15 +224,17 @@ public class build_tagger {
       // devt = new FileInputStream(devtFileName);
       // FileOutputStream out = new FileOutputStream(modelFileName);
     }catch(Exception e){
-        System.err.println(e + ": no file to read");
+        System.err.println(e + ": no file to read in main");
     }
     // printTagsMatrix();
-    System.out.println(vocabulary.size());
+    // System.out.println(vocabulary.size());
+    // System.out.println(vocabulary.contains("unknownUnseenWords"));
     // printVocabMatrix(vocabularyMatrix);
     smoothenVocabularyMatrix();
     // printVocabMatrix(duplicateVocab);
     calculateProbabilityTagMatrix();
     // printProbabilityTagsMatrix();
+    // System.out.println("JUST TO MAKE SURE: VOCABMATRIXSIZE is " + vocabularyMatrix.size());
     printModelFile(modelFileName);
   }
 }

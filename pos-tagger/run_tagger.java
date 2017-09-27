@@ -6,6 +6,7 @@ public class run_tagger{
   public static double[][] probabilityTagMatrix = new double[47][47];
   public static Map<String, ArrayList<Double>> duplicateVocab = new HashMap<String, ArrayList<Double>>();
   public static int vocabSize = 0;
+
   public static void printProbabilityTagsMatrix(){
     System.out.print("-, ");
     for(int i=0; i<=46; i++){
@@ -67,7 +68,46 @@ public class run_tagger{
     }catch(Exception e){
         System.err.println(e + ": no file to read");
     }
+  }
 
+  public static void printViterbi(double[][] mat, String[][] back, int obs){
+    for(int i=0; i<45; i++){
+      for(int j=0; j<obs; j++){
+        System.out.print(mat[i][j] + "->" + back[i][j] + " ");
+      }
+      System.out.print("\n");
+    }
+  }
+
+  public static void viterbi(String line){
+    String[] tokens = line.split(" ");
+    double[][] viterbiMat = new double[45][tokens.length];
+    String[][] viterbiBack = new String[45][tokens.length];
+    // printViterbi(viterbiMat, viterbiBack, tokens.length);
+    // for(int i=0; i<45; i++){
+    //   viterbiMat[i][0] = probabilityTagMatrix[0][i+1];
+    // }
+    // printViterbi(viterbiMat, viterbiBack, tokens.length);
+
+    for(int i=0; i<tokens.length; i++){
+      if(duplicateVocab.get(tokens[i]) == null){
+        System.out.print(tokens[i] + "\n");
+
+      }
+    }
+  }
+
+  public static void evaluateTestFile(String fileName){
+    String line = null;
+    try{
+      FileReader fr = new FileReader(fileName);
+      BufferedReader br = new BufferedReader(fr);
+      while((line=br.readLine())!=null){
+        viterbi(line);
+      }
+    }catch(Exception e){
+        System.err.println(e + ": no file to read");
+    }
   }
 
   public static void main(String[] args) {
@@ -76,6 +116,7 @@ public class run_tagger{
     String modelFileName = args[1];
     String outFileName = args[2];
     readModel(modelFileName);
+    evaluateTestFile(testFileName);
     // printProbabilityTagsMatrix();
 
     // printVocabMatrix(duplicateVocab);
