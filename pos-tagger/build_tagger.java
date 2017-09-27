@@ -1,7 +1,6 @@
 import java.util.*;
 import java.io.*;
 
-
 public class build_tagger {
   public static int[][] tagMatrix = new int[47][47];
   public static String[] tags = new String[47];
@@ -188,18 +187,18 @@ public class build_tagger {
       for(int i=1; i<=45; i++){
         bw.write(tags[i] + ", ");
       }
-      bw.write(tags[46] + '\n');
+      bw.write(tags[46] + "\n");
       for(int i=0; i<=45; i++){
         for(int j=1; j<=45; j++){
           bw.write(probabilityTagMatrix[i][j] + ", ");
         }
-        bw.write(probabilityTagMatrix[i][46] + "" +'\n');
+        bw.write(probabilityTagMatrix[i][46] + "\n");
       }
       ////
-      bw.write('\n' + vocabulary.size() + "" + '\n');
+      bw.write(vocabulary.size() + "\n");
       ////
       for (Map.Entry entry : duplicateVocab.entrySet()) {
-          bw.write(entry.getKey() + "-->" + entry.getValue() + '\n');
+          bw.write(entry.getKey() + "-->" + entry.getValue() + "\n");
       }
 
     } catch(Exception e){
