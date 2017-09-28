@@ -5,7 +5,8 @@ public class run_tagger{
   public static List<String> tags = new ArrayList<String>();
   public static double[][] tagMatrix = new double[47][47];
   public static List<Map<String, Double>> vocabularyMatrix = new ArrayList<Map<String, Double>>();
-  // public static int vocabSize = 0;
+  public static int vocabSize = 0;
+  public static Set<String> vocabulary = new HashSet<String>();
   public static Stack<String> backtrace = new Stack<String>();
 
   //For debugging - print the tag and emitter probability matrices.
@@ -59,20 +60,26 @@ public class run_tagger{
           tagMatrix[i][j+1] = Double.parseDouble(strProbs[j]);
         }
       }
-      //
-      // vocabSize = Integer.parseInt(br.readLine());
-      //
+
+      vocabSize = Integer.parseInt(br.readLine());
+
       for(int i=0; i<tags.size()-2; i++){
         String[] tagCount = br.readLine().split(" ");
         vocabularyMatrix.add(new HashMap<String, Double>());
         for(int j=0; j<Integer.parseInt(tagCount[1]); j++){
           String[] line = br.readLine().split(" ");
+          vocabulary.add(line[0]);
           vocabularyMatrix.get(i).put(line[0], Double.parseDouble(line[1]));
         }
       }
     }catch(Exception e){
         System.err.println(e + ": no file to read");
     }
+  }
+
+  public static double handleUnknownWord(String word, int tagIndex){
+      System.out.println(word + " is unknown to " + tags.get(tagIndex));
+      return vocabularyMatrix.get(tagIndex).get("unknownUnseenWords");
   }
 
   public static void viterbi(String line){
@@ -96,14 +103,20 @@ public class run_tagger{
         word = tokens[i]; //tlc
         double max = viterbiMat[0][i-1] * tagMatrix[1][j+1];
         String argMax = tags.get(1);
+        //unknown word handling
+        double probOfWordGivenTag = 1.0;
         if(!vocabularyMatrix.get(j).containsKey(word)){ //tlc
+          if(!vocabulary.contains(word)){
+            probOfWordGivenTag *= handleUnknownWord(word, j);
+          }
           word = "unknownUnseenWords";
         }
-        double viterbiMax = max * vocabularyMatrix.get(j).get(word); //tlc
+        probOfWordGivenTag *= vocabularyMatrix.get(j).get(word);
+        double viterbiMax = max * probOfWordGivenTag; //tlc
         for(int k=1; k<tags.size()-2; k++){
           double maxE = viterbiMat[k][i-1] * tagMatrix[k+1][j+1];
           String argMaxE = tags.get(k+1);
-          double viterbiMaxE = maxE * vocabularyMatrix.get(j).get(word); //tlc
+          double viterbiMaxE = maxE * probOfWordGivenTag; //tlc
           if(maxE > max){
             max = maxE;
             argMax = argMaxE;
@@ -135,7 +148,7 @@ public class run_tagger{
       backtrace.push(tokens[i-1] + "/" + viterbiBack[tags.indexOf(arg)][i]);
       arg = viterbiBack[tags.indexOf(arg)][i];
     }
-    printViterbi(viterbiMat, viterbiBack, tokens.length);
+    // printViterbi(viterbiMat, viterbiBack, tokens.length);
   }
 
   public static void evaluateTestFile(String fileName, String outFileName){
