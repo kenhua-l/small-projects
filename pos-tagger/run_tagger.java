@@ -92,38 +92,24 @@ public class run_tagger{
     // printViterbi(viterbiMat, viterbiBack, tokens.length);
 
     for(int i=1; i<tokens.length; i++){
-      for(int j=0; j<45; j++){
+      for(int j=0; j<tags.size()-2; j++){
         word = tokens[i]; //tlc
         double max = viterbiMat[0][i-1] * tagMatrix[1][j+1];
         String argMax = tags.get(1);
-        double viterbiMax = max;
-        if(vocabularyMatrix.get(j).containsKey(word)){ //tlc
-          viterbiMax *= vocabularyMatrix.get(j).get(word); //tlc
-          for(int k=1; k<tags.size()-2; k++){
-            double maxE = viterbiMat[k][i-1] * tagMatrix[k+1][j+1];
-            String argMaxE = tags.get(k+1);
-            double viterbiMaxE = maxE * vocabularyMatrix.get(j).get(word); //tlc
-            if(maxE > max){
-              max = maxE;
-              argMax = argMaxE;
-            }
-            if(viterbiMaxE > viterbiMax){
-              viterbiMax = viterbiMaxE;
-            }
+        if(!vocabularyMatrix.get(j).containsKey(word)){ //tlc
+          word = "unknownUnseenWords";
+        }
+        double viterbiMax = max * vocabularyMatrix.get(j).get(word); //tlc
+        for(int k=1; k<tags.size()-2; k++){
+          double maxE = viterbiMat[k][i-1] * tagMatrix[k+1][j+1];
+          String argMaxE = tags.get(k+1);
+          double viterbiMaxE = maxE * vocabularyMatrix.get(j).get(word); //tlc
+          if(maxE > max){
+            max = maxE;
+            argMax = argMaxE;
           }
-        }else{
-          viterbiMax *= vocabularyMatrix.get(j).get("unknownUnseenWords");
-          for(int k=1; k<tags.size()-2; k++){
-            double maxE = viterbiMat[k][i-1] * tagMatrix[k+1][j+1];
-            String argMaxE = tags.get(k+1);
-            double viterbiMaxE = maxE * vocabularyMatrix.get(j).get("unknownUnseenWords");
-            if(maxE > max){
-              max = maxE;
-              argMax = argMaxE;
-            }
-            if(viterbiMaxE > viterbiMax){
-              viterbiMax = viterbiMaxE;
-            }
+          if(viterbiMaxE > viterbiMax){
+            viterbiMax = viterbiMaxE;
           }
         }
         viterbiMat[j][i] = viterbiMax;
@@ -180,29 +166,6 @@ public class run_tagger{
     }
   }
 
-  public static void writeResult(String outFileName){
-    BufferedWriter bw = null;
-    try {
-      FileOutputStream fos = new FileOutputStream(outFileName);
-      OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8");
-      bw = new BufferedWriter(osw);
-      ////////
-      while(!backtrace.isEmpty()){
-        bw.write(backtrace.pop() + " ");
-      }
-      bw.write("\n");
-
-    } catch(Exception e){
-      System.err.println(e + ": cannot write");
-    } finally {
-      try{
-        bw.close();
-      }catch(Exception e){
-        System.err.println(e + ": cannot write");
-      }
-    }
-  }
-
   public static void main(String[] args) {
     //java run_tagger sents.test model_file sents.out
     String testFileName = args[0];
@@ -210,22 +173,8 @@ public class run_tagger{
     String outFileName = args[2];
     readModel(modelFileName);
     evaluateTestFile(testFileName, outFileName);
-    // writeResult(outFileName);
-    // System.out.println();
     // printProbabilityTagsMatrix();
-
     // printVocabMatrix(vocabularyMatrix);
-    // System.out.print(vocabSize + "\n");
-    //checksum to 1
-    // for(int i=0; i<vocabularyMatrix.size(); i++){
-    //   System.out.print("tag"+i);
-    //   double sum = vocabularyMatrix.get(i).get("unknownUnseenWords") * (vocabSize - vocabularyMatrix.get(i).keySet().size() - 1);
-    //   for(double val: vocabularyMatrix.get(i).values()){
-    //     sum += val;
-    //   }
-    //   System.out.println(": "+sum);
-    // }
-
     // System.out.println(testFileName + " " + modelFileName + " " + outFileName);
   }
 }
