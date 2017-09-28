@@ -156,7 +156,7 @@ public class build_tagger {
         bw.write(tagMatrix[i][46] + "\n");
       }
       ////
-      bw.write(vocabulary.size() + "\n");
+      // bw.write(vocabulary.size() + "\n");
       ////
       for(int i=0; i<45; i++){
         bw.write(penn_Tags.get(i+1)+ " " + vocabularyMatrix.get(i).keySet().size() + "\n");
