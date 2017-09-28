@@ -2,6 +2,7 @@ import java.util.*;
 import java.io.*;
 
 public class run_tagger{
+  public static List<String> tags = new ArrayList<String>();
   public static String[] tagsArr = new String[46];
   public static Map<String, Integer> tagID = new HashMap<String, Integer>();
   public static double[][] probabilityTagMatrix = new double[47][47];
@@ -93,10 +94,11 @@ public class run_tagger{
     // System.out.println("Sentence length is " + tokens.length);
     double[][] viterbiMat = new double[45][tokens.length];
     String[][] viterbiBack = new String[45][tokens.length];
+    String word = tokens[0]; //tlc
     // printViterbi(viterbiMat, viterbiBack, tokens.length);
     for(int i=0; i<45; i++){
       if(duplicateVocab.get(i).containsKey(tokens[0])){
-        viterbiMat[i][0] = probabilityTagMatrix[0][i+1]*duplicateVocab.get(i).get(tokens[0].toLowerCase()); //tlc
+        viterbiMat[i][0] = probabilityTagMatrix[0][i+1]*duplicateVocab.get(i).get(word); //tlc
       }else{
         viterbiMat[i][0] = probabilityTagMatrix[0][i+1]*duplicateVocab.get(i).get("unknownUnseenWords");
       }
@@ -106,19 +108,20 @@ public class run_tagger{
 
     for(int i=1; i<tokens.length; i++){
       for(int j=0; j<45; j++){
+        word = tokens[i]; //tlc
         // double max = viterbiMat[0][i-1] * probabilityTagMatrix[1][j+1];
         // String argMax = tagsArr[0];
         // double viterbiMax = max * duplicateVocab.get(j).get(tokens[i]);
 
         // System.out.println(argMax + " " + max +" "+ tagsArr[0]+tagsArr[j]);
-        if(duplicateVocab.get(j).containsKey(tokens[i].toLowerCase())){ //tlc
+        if(duplicateVocab.get(j).containsKey(word)){ //tlc
           double max = viterbiMat[0][i-1] * probabilityTagMatrix[1][j+1];
           String argMax = tagsArr[0];
-          double viterbiMax = max * duplicateVocab.get(j).get(tokens[i].toLowerCase()); //tlc
+          double viterbiMax = max * duplicateVocab.get(j).get(word); //tlc
           for(int k=1; k<45; k++){
             double maxE = viterbiMat[k][i-1] * probabilityTagMatrix[k+1][j+1];
             String argMaxE = tagsArr[k];
-            double viterbiMaxE = maxE * duplicateVocab.get(j).get(tokens[i].toLowerCase()); //tlc
+            double viterbiMaxE = maxE * duplicateVocab.get(j).get(word); //tlc
             if(maxE > max){
               max = maxE;
               argMax = argMaxE;

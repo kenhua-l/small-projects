@@ -2,49 +2,35 @@ import java.util.*;
 import java.io.*;
 
 public class build_tagger {
-  public static int[][] tagMatrix = new int[47][47];
-  public static String[] tags = new String[47];
-  public static Map<String, Integer> tagID = new HashMap<String, Integer>();
+  //List of all 45 Penn tags, <s>, and </s>
+  public static final List<String> penn_Tags = Arrays.asList("<s>", "CC", "CD", "DT", "EX",
+  "FW", "IN", "JJ", "JJR", "JJS", "LS", "MD", "NN", "NNS", "NNP", "NNPS",
+  "PDT", "POS", "PRP", "PRP$", "RB", "RBR", "RBS", "RP", "SYM", "TO", "UH",
+  "VB", "VBD", "VBG", "VBN", "VBP", "VBZ", "WDT",  "WP", "WP$", "WRB", "$",
+  "#", "``", "''", "-LRB-", "-RRB-", ",", ".", ":", "</s>");
+
+  public static double[][] tagMatrix = new double[47][47];
   public static Set<String> vocabulary = new HashSet<String>();
-  public static List<Map<String,Integer>> vocabularyMatrix = new ArrayList<Map<String,Integer>>();
+  public static List<Map<String, Double>> vocabularyMatrix = new ArrayList<Map<String, Double>>();
 
   public static void initializeMatrix(){
-    for(int i=0; i<47; i++){
-      for(int j=0; j<47; j++){
-        tagMatrix[i][j] = 0;
-        probabilityTagMatrix[i][j] = 0;
-      }
-      if(i<45){
-        vocabularyMatrix.add(new HashMap<String, Integer>());
-      }
+    for(int i=0; i<45; i++){
+      // Decided to just initialize 45 because <s> and </s> does not need that much space
+      vocabularyMatrix.add(new HashMap<String, Double>());
     }
   }
 
-  public static void readPenn(){
-    String line = null;
-    int index = 0;
-    try{
-      BufferedReader br = new BufferedReader(new FileReader("penn_tags.txt"));
-      while((line=br.readLine()) != null){
-        String[] segment = line.split(" ");
-        tagID.put(segment[1], Integer.valueOf(segment[0]));
-        tags[index++] = segment[1];
-      }
-    }catch(Exception e){
-        System.err.println(e + ": no file to read");
-    }
-  }
-
-  public static void printTagsMatrix(){
-    System.out.print("-, ");
-    for(int i=0; i<=46; i++){
-      System.out.print(tags[i] + ", ");
+  //For debugging - print the tag and emitter probability matrices.
+  public static void printTagsMatrix(double[][] tagMatrix){
+    System.out.print("-,\t");
+    for(int i=0; i<tagMatrix.length; i++){
+      System.out.print(penn_Tags.get(i) + ",\t");
     }
     System.out.println();
-    for(int i=0; i<=46; i++){
-      System.out.print(tags[i]+ ", ");
-      for(int j=0; j<=46; j++){
-        System.out.print(tagMatrix[i][j] + ", ");
+    for(int i=0; i<tagMatrix.length; i++){
+      System.out.print(penn_Tags.get(i)+ ",\t");
+      for(int j=0; j<tagMatrix[i].length; j++){
+        System.out.print(tagMatrix[i][j] + ",\t");
       }
       System.out.println();
     }
@@ -52,54 +38,81 @@ public class build_tagger {
 
   public static void printVocabMatrix(List<Map<String,Double>> matrix){
     for(int i=1; i<matrix.size(); i++){
-      System.out.println(tags[i]);
-      for(Map.Entry vocab : matrix.get(i-1).entrySet()){
+      System.out.println(penn_Tags.get(i));
+      for(Map.Entry<String, Double> vocab : matrix.get(i-1).entrySet()){
         System.out.println(vocab.getKey() + "->" + vocab.getValue());
       }
     }
   }
 
-  public static void addCountToMatrix(String line){
+  //add raw counts to the tagmatrix and the vocabularyMatrix
+  public static void processLine(String line){
     String[] segmented = line.split(" ");
-    String word = null;
     String tag = null;
-    String prevTag = null;
+    String prevTag = "<s>";
     for(int i=0; i<segmented.length; i++){
       String[] wordTag = segmented[i].split("/");
-      word = wordTag[0];
+      String word = wordTag[0]; //tlc
       if(wordTag.length > 2){
         for(int j=1; j<wordTag.length-1; j++){
-          word += "/" + wordTag[j];
+          word += "/" + wordTag[j]; //tlc
         }
         tag = wordTag[wordTag.length-1];
       }else{
         tag = wordTag[1];
       }
 
-      if(vocabularyMatrix.get(tagID.get(tag)-1).keySet().contains(word.toLowerCase())){ //tlc
-        Map<String, Integer> vocabList = vocabularyMatrix.get(tagID.get(tag)-1);
-        int prevFreq = vocabList.get(word.toLowerCase()); //tlc
-        vocabList.put(word.toLowerCase(), prevFreq+1); //tlc
+      //PennTags and tagMatrix has 47 rows, vocabularyMatrixonly has 45
+      int tagIndex = penn_Tags.indexOf(tag);
+      double wordCount = 0;
+      if(vocabularyMatrix.get(tagIndex-1).keySet().contains(word)){
+        wordCount = vocabularyMatrix.get(tagIndex-1).get(word);
       } else {
-        vocabulary.add(word.toLowerCase()); //tlc
-        Map<String, Integer> vocabList = vocabularyMatrix.get(tagID.get(tag)-1);
-        vocabList.put(word.toLowerCase(), 1); //tlc
+        vocabulary.add(word);
       }
+      vocabularyMatrix.get(tagIndex-1).put(word, wordCount+1.0);
 
-      if(i==0){
-        tagMatrix[tagID.get("<s>")][tagID.get(tag)]++;
-      } else {
-        tagMatrix[tagID.get(prevTag)][tagID.get(tag)]++;
-      }
+      tagMatrix[penn_Tags.indexOf(prevTag)][tagIndex]++;
       prevTag = tag;
     }
-    tagMatrix[tagID.get(tag)][tagID.get("</s>")]++;
+    tagMatrix[penn_Tags.indexOf(tag)][penn_Tags.indexOf("</s>")]++;
   }
 
   //For runTagger
   //Smoothing
-  public static double[][] probabilityTagMatrix = new double[47][47];
-  public static List<Map<String, Double>> duplicateVocab = new ArrayList<Map<String, Double>>();
+  public static void smoothProbabilityTagMatrix(){
+    // Tag1Tag2
+    // p(t2|t1) probability of Tag2 given Tag1 (what we are computing)
+    // cTt is the tag bigram count for Tag1Tag2 in that order
+    // cT is the frequency Tag1 appears (sum up column or row is ok)
+    // tT is the number of types of tags following T
+    // V is 47 tags so Z is V-tT
+    // WittenBell smoothing -
+    // p = cTt / (cT + tT) if cTt > 0
+    // p = tT / (cT + tT)*zT if cTt = 0
+    int vT = penn_Tags.size();
+    // </s> row not evaluated, all 0 because </s> does not preceed any tag.
+    for(int i=0; i<penn_Tags.size()-1; i++){
+      double cT = 0;
+      double tT = 0;
+      // <s> col not evaluated, all 0 because <s> does not succeed any tag.
+      for(int j=1; j<penn_Tags.size(); j++){
+        if(tagMatrix[i][j] > 0) {
+          tT++;
+          cT += tagMatrix[i][j];
+        }
+      }
+      double zT = vT - tT;
+      for(int j=1; j<penn_Tags.size(); j++){
+        double cTt = tagMatrix[i][j];
+        if(tagMatrix[i][j] > 0){
+          tagMatrix[i][j] = cTt / (cT + tT);
+        }else{
+          tagMatrix[i][j] = tT / ((cT + tT) * zT);
+        }
+      }
+    }
+  }
 
   public static void smoothenVocabularyMatrix(){
     // cTt=raw freq of word in that tag
@@ -111,63 +124,18 @@ public class build_tagger {
       double tT = vocabularyMatrix.get(i).keySet().size();
       double cT = 0;
       double zT = vT - tT;
-      duplicateVocab.add(new HashMap<String, Double>());
-      for(int k : vocabularyMatrix.get(i).values()){
+      for(double k : vocabularyMatrix.get(i).values()){
         cT += k;
       }
-      Map<String, Double> newSet = duplicateVocab.get(i);
-      for(Map.Entry vocab : vocabularyMatrix.get(i).entrySet()){
-        double smoothedProb = (int) vocab.getValue() / (cT + tT);
-        newSet.put(String.valueOf(vocab.getKey()), smoothedProb);
+      for(Map.Entry<String, Double> vocab : vocabularyMatrix.get(i).entrySet()){
+        double smoothedProb = vocab.getValue() / (cT + tT);
+        vocab.setValue(smoothedProb);
       }
       double unseenProb = tT / ((cT + tT) * zT);
-      newSet.put("unknownUnseenWords", unseenProb);
+      vocabularyMatrix.get(i).put("unknownUnseenWords", unseenProb);
     }
   }
 
-  public static void calculateProbabilityTagMatrix(){
-    // <-Tag1Tag2^
-    // probability of Tag2 given Tag1
-    // cTt is the tag bigram count Tag1Tag2
-    // cT is the frequency Tag1 appears (sum up column or row is ok)
-    // tT is the number of types of tags following T
-    // V is 45 so Z is V-tT
-    int vT = 47;
-    for(int i=0; i<46; i++){
-      double cT = 0;
-      double tT = 0;
-      for(int j=1; j<47; j++){
-        if(tagMatrix[i][j] > 0) {
-          tT++;
-          cT += tagMatrix[i][j];
-        }
-      }
-      double zT = vT - tT;
-      for(int j=1; j<47; j++){
-        double cTt = tagMatrix[i][j];
-        if(tagMatrix[i][j] > 0){
-          probabilityTagMatrix[i][j] = cTt / (cT + tT);
-        }else{
-          probabilityTagMatrix[i][j] = tT / ((cT + tT) * zT);
-        }
-      }
-    }
-  }
-
-  public static void printProbabilityTagsMatrix(){
-    System.out.print("-, ");
-    for(int i=0; i<=46; i++){
-      System.out.print(tags[i] + ", ");
-    }
-    System.out.println();
-    for(int i=0; i<=46; i++){
-      System.out.print(tags[i]+ ", ");
-      for(int j=0; j<=46; j++){
-        System.out.print(probabilityTagMatrix[i][j] + ", ");
-      }
-      System.out.println();
-    }
-  }
   //
 
   public static void printModelFile(String modelFileName){
@@ -178,21 +146,21 @@ public class build_tagger {
       bw = new BufferedWriter(osw);
       ////////
       for(int i=1; i<=45; i++){
-        bw.write(tags[i] + ", ");
+        bw.write(penn_Tags.get(i) + ", ");
       }
-      bw.write(tags[46] + "\n");
+      bw.write(penn_Tags.get(46) + "\n");
       for(int i=0; i<=45; i++){
         for(int j=1; j<=45; j++){
-          bw.write(probabilityTagMatrix[i][j] + ", ");
+          bw.write(tagMatrix[i][j] + ", ");
         }
-        bw.write(probabilityTagMatrix[i][46] + "\n");
+        bw.write(tagMatrix[i][46] + "\n");
       }
       ////
       bw.write(vocabulary.size() + "\n");
       ////
       for(int i=0; i<45; i++){
-        bw.write(tags[i+1]+ " " + duplicateVocab.get(i).keySet().size() + "\n");
-        for (Map.Entry entry : duplicateVocab.get(i).entrySet()){
+        bw.write(penn_Tags.get(i+1)+ " " + vocabularyMatrix.get(i).keySet().size() + "\n");
+        for (Map.Entry<String, Double> entry : vocabularyMatrix.get(i).entrySet()){
           bw.write(entry.getKey() + " " + entry.getValue() + "\n");
         }
       }
@@ -209,35 +177,31 @@ public class build_tagger {
   }
 
   public static void main(String[] args){
-    // java build_tagger sents.train sents.devt model_file
+    // command is java build_tagger sents.train sents.devt model_file
     String trainFileName = args[0];
     String devtFileName = args[1];
     String modelFileName = args[2];
     String line = null;
+    // System.out.println(Arrays.toString(penn_Tags.toArray()));
     initializeMatrix();
-    readPenn();
     try{
       BufferedReader br = new BufferedReader(new FileReader(trainFileName));
       while((line=br.readLine()) != null){
-        addCountToMatrix(line);
+        processLine(line);
       }
       // BufferedReader brd = new BufferedReader(new FileReader(devtFileName));
       // while((line=brd.readLine()) != null){
-      //   addCountToMatrix(line);
+      //   processLine(line);
       // }
 
     }catch(Exception e){
         System.err.println(e + ": no file to read in main");
     }
-    // printTagsMatrix();
-    // System.out.println(vocabulary.size());
-    // System.out.println(vocabulary.contains("unknownUnseenWords"));
-    // printVocabMatrix(vocabularyMatrix);
     smoothenVocabularyMatrix();
-    // printVocabMatrix(duplicateVocab);
-    calculateProbabilityTagMatrix();
-    // printProbabilityTagsMatrix();
-    // System.out.println("JUST TO MAKE SURE: VOCABMATRIXSIZE is " + vocabularyMatrix.size());
+    // printVocabMatrix(vocabularyMatrix);
+    smoothProbabilityTagMatrix();
+    // System.out.println(vocabulary.size());
+    // printTagsMatrix(tagMatrix);
     printModelFile(modelFileName);
   }
 }
