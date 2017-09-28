@@ -76,14 +76,14 @@ public class build_tagger {
         tag = wordTag[1];
       }
 
-      if(vocabularyMatrix.get(tagID.get(tag)-1).keySet().contains(word.toLowerCase())){
+      if(vocabularyMatrix.get(tagID.get(tag)-1).keySet().contains(word.toLowerCase())){ //tlc
         Map<String, Integer> vocabList = vocabularyMatrix.get(tagID.get(tag)-1);
-        int prevFreq = vocabList.get(word.toLowerCase());
-        vocabList.put(word.toLowerCase(), prevFreq+1);
+        int prevFreq = vocabList.get(word.toLowerCase()); //tlc
+        vocabList.put(word.toLowerCase(), prevFreq+1); //tlc
       } else {
-        vocabulary.add(word.toLowerCase());
+        vocabulary.add(word.toLowerCase()); //tlc
         Map<String, Integer> vocabList = vocabularyMatrix.get(tagID.get(tag)-1);
-        vocabList.put(word.toLowerCase(), 1);
+        vocabList.put(word.toLowerCase(), 1); //tlc
       }
 
       if(i==0){
@@ -191,9 +191,9 @@ public class build_tagger {
       bw.write(vocabulary.size() + "\n");
       ////
       for(int i=0; i<45; i++){
-        bw.write(tags[i+1]+"\n");
+        bw.write(tags[i+1]+ " " + duplicateVocab.get(i).keySet().size() + "\n");
         for (Map.Entry entry : duplicateVocab.get(i).entrySet()){
-          bw.write(entry.getKey() + "-->" + entry.getValue() + "\n");
+          bw.write(entry.getKey() + " " + entry.getValue() + "\n");
         }
       }
 
@@ -221,8 +221,11 @@ public class build_tagger {
       while((line=br.readLine()) != null){
         addCountToMatrix(line);
       }
-      // devt = new FileInputStream(devtFileName);
-      // FileOutputStream out = new FileOutputStream(modelFileName);
+      // BufferedReader brd = new BufferedReader(new FileReader(devtFileName));
+      // while((line=brd.readLine()) != null){
+      //   addCountToMatrix(line);
+      // }
+
     }catch(Exception e){
         System.err.println(e + ": no file to read in main");
     }
