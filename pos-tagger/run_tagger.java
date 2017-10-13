@@ -78,7 +78,7 @@ public class run_tagger{
   }
 
   public static double handleUnknownWord(String word, int tagIndex){
-      System.out.println(word + " is unknown to " + tags.get(tagIndex));
+      // System.out.println(word + " is unknown to " + tags.get(tagIndex));
       return vocabularyMatrix.get(tagIndex).get("unknownUnseenWords");
   }
 
@@ -145,8 +145,9 @@ public class run_tagger{
     backtrace.push(tokens[tokens.length-1] + "/" + argMaxF);
     String arg=argMaxF;
     for(int i=tokens.length-1; i>0; i--){
-      backtrace.push(tokens[i-1] + "/" + viterbiBack[tags.indexOf(arg)][i]);
-      arg = viterbiBack[tags.indexOf(arg)][i];
+      // System.out.println(tags.indexOf(arg));
+      backtrace.push(tokens[i-1] + "/" + viterbiBack[tags.indexOf(arg)-1][i]);
+      arg = viterbiBack[tags.indexOf(arg)-1][i];
     }
     // printViterbi(viterbiMat, viterbiBack, tokens.length);
   }
@@ -161,6 +162,7 @@ public class run_tagger{
       OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8");
       bw = new BufferedWriter(osw);
       while((line=br.readLine())!=null){
+
         viterbi(line);
         // System.out.println();
         while(!backtrace.isEmpty()){
@@ -169,6 +171,7 @@ public class run_tagger{
         bw.write("\n");
       }
     }catch(Exception e){
+        e.printStackTrace();
         System.err.println(e + ": no file to read or write");
     }finally {
       try{
