@@ -1,0 +1,305 @@
+
+> library(ez, pos=17)
+
+> Dataset <- read.table("/Users/kenhualiew/Desktop/process-trials/cleantrials/ANOVAdata.csv",
++   header=TRUE, sep=",", na.strings="NA", dec=".", strip.white=TRUE)
+
+> anova1 <- aov(time ~ granularity, data=Dataset)
+
+> summary(anova1)
+              Df      Sum Sq    Mean Sq F value Pr(>F)
+granularity    2  4904983850 2452491925   60.27 <2e-16 ***
+Residuals   1293 52611900982   40689792
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+> with(Dataset, numSummary(time, groups=granularity, statistics=c("mean", "sd")))
+               mean       sd data:n
+paragraph  9308.539 6913.076    432
+phrase    12028.685 7701.692    432
+sentence   7280.132 3868.164    432
+
+> local({
++   .Pairs <- glht(anova1, linfct = mcp(granularity = "Tukey"))
++   print(summary(.Pairs)) # pairwise tests
++   print(confint(.Pairs)) # confidence intervals
++   print(cld(.Pairs)) # compact letter display
++   old.oma <- par(oma=c(0,5,0,0))
++   plot(confint(.Pairs))
++   par(old.oma)
++ })
+
+	 Simultaneous Tests for General Linear Hypotheses
+
+Multiple Comparisons of Means: Tukey Contrasts
+
+
+Fit: aov(formula = time ~ granularity, data = Dataset)
+
+Linear Hypotheses:
+                          Estimate Std. Error t value   Pr(>|t|)
+phrase - paragraph == 0       2720        434   6.267 < 0.000001 ***
+sentence - paragraph == 0    -2028        434  -4.673 0.00000863 ***
+sentence - phrase == 0       -4749        434 -10.941 < 0.000001 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+(Adjusted p values reported -- single-step method)
+
+
+	 Simultaneous Confidence Intervals
+
+Multiple Comparisons of Means: Tukey Contrasts
+
+
+Fit: aov(formula = time ~ granularity, data = Dataset)
+
+Quantile = 2.3463
+95% family-wise confidence level
+
+
+Linear Hypotheses:
+                          Estimate   lwr        upr
+phrase - paragraph == 0    2720.1458  1701.8066  3738.4851
+sentence - paragraph == 0 -2028.4074 -3046.7467 -1010.0681
+sentence - phrase == 0    -4748.5532 -5766.8925 -3730.2140
+
+paragraph    phrase  sentence
+      "b"       "c"       "a"
+
+> anova2 <- aov(time ~ windows, data=Dataset)
+
+> summary(anova2)
+              Df      Sum Sq    Mean Sq F value   Pr(>F)
+windows        1  1853943522 1853943522    43.1 7.51e-11 ***
+Residuals   1294 55662941310   43016183
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+> with(Dataset, numSummary(time, groups=windows, statistics=c("mean", "sd")))
+              mean       sd data:n
+Multiple 10735.159 7657.317    648
+Single    8343.079 5234.297    648
+
+> local({
++   .Pairs <- glht(anova2, linfct = mcp(windows = "Tukey"))
++   print(summary(.Pairs)) # pairwise tests
++   print(confint(.Pairs)) # confidence intervals
++   print(cld(.Pairs)) # compact letter display
++   old.oma <- par(oma=c(0,5,0,0))
++   plot(confint(.Pairs))
++   par(old.oma)
++ })
+
+	 Simultaneous Tests for General Linear Hypotheses
+
+Multiple Comparisons of Means: Tukey Contrasts
+
+
+Fit: aov(formula = time ~ windows, data = Dataset)
+
+Linear Hypotheses:
+                       Estimate Std. Error t value Pr(>|t|)
+Single - Multiple == 0  -2392.1      364.4  -6.565 7.51e-11 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+(Adjusted p values reported -- single-step method)
+
+
+	 Simultaneous Confidence Intervals
+
+Multiple Comparisons of Means: Tukey Contrasts
+
+
+Fit: aov(formula = time ~ windows, data = Dataset)
+
+Quantile = 1.9618
+95% family-wise confidence level
+
+
+Linear Hypotheses:
+                       Estimate   lwr        upr
+Single - Multiple == 0 -2392.0802 -3106.9023 -1677.2582
+
+Multiple   Single
+     "b"      "a"
+
+> anova3 <- aov(accuracy ~ technique, data=Dataset)
+
+> summary(anova3)
+              Df Sum Sq Mean Sq F value  Pr(>F)
+technique      1  0.077 0.07716    7.25 0.00718 **
+Residuals   1294 13.772 0.01064
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+> with(Dataset, numSummary(accuracy, groups=technique, statistics=c("mean", "sd")))
+                  mean         sd data:n
+AUTOCOMPASTE 0.9814815 0.13492100    648
+TRADITIONAL  0.9969136 0.05551261    648
+
+> local({
++   .Pairs <- glht(anova3, linfct = mcp(technique = "Tukey"))
++   print(summary(.Pairs)) # pairwise tests
++   print(confint(.Pairs)) # confidence intervals
++   print(cld(.Pairs)) # compact letter display
++   old.oma <- par(oma=c(0,5,0,0))
++   plot(confint(.Pairs))
++   par(old.oma)
++ })
+
+	 Simultaneous Tests for General Linear Hypotheses
+
+Multiple Comparisons of Means: Tukey Contrasts
+
+
+Fit: aov(formula = accuracy ~ technique, data = Dataset)
+
+Linear Hypotheses:
+                                Estimate Std. Error t value Pr(>|t|)
+TRADITIONAL - AUTOCOMPASTE == 0 0.015432   0.005731   2.693  0.00718 **
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+(Adjusted p values reported -- single-step method)
+
+
+	 Simultaneous Confidence Intervals
+
+Multiple Comparisons of Means: Tukey Contrasts
+
+
+Fit: aov(formula = accuracy ~ technique, data = Dataset)
+
+Quantile = 1.9618
+95% family-wise confidence level
+
+
+Linear Hypotheses:
+                                Estimate lwr      upr
+TRADITIONAL - AUTOCOMPASTE == 0 0.015432 0.004188 0.026676
+
+AUTOCOMPASTE  TRADITIONAL
+         "a"          "b"
+
+> anova4 <- aov(accuracy ~ granularity, data=Dataset)
+
+> summary(anova4)
+              Df Sum Sq Mean Sq F value    Pr(>F)
+granularity    2  0.242 0.12114   11.51 0.0000111 ***
+Residuals   1293 13.606 0.01052
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+> with(Dataset, numSummary(accuracy, groups=granularity, statistics=c("mean", "sd")))
+               mean         sd data:n
+paragraph 0.9976852 0.04811252    432
+phrase    0.9699074 0.17104019    432
+sentence  1.0000000 0.00000000    432
+
+> local({
++   .Pairs <- glht(anova4, linfct = mcp(granularity = "Tukey"))
++   print(summary(.Pairs)) # pairwise tests
++   print(confint(.Pairs)) # confidence intervals
++   print(cld(.Pairs)) # compact letter display
++   old.oma <- par(oma=c(0,5,0,0))
++   plot(confint(.Pairs))
++   par(old.oma)
++ })
+
+	 Simultaneous Tests for General Linear Hypotheses
+
+Multiple Comparisons of Means: Tukey Contrasts
+
+
+Fit: aov(formula = accuracy ~ granularity, data = Dataset)
+
+Linear Hypotheses:
+                           Estimate Std. Error t value Pr(>|t|)
+phrase - paragraph == 0   -0.027778   0.006980  -3.980 0.000218 ***
+sentence - paragraph == 0  0.002315   0.006980   0.332 0.941180
+sentence - phrase == 0     0.030093   0.006980   4.311 < 0.0001 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+(Adjusted p values reported -- single-step method)
+
+
+	 Simultaneous Confidence Intervals
+
+Multiple Comparisons of Means: Tukey Contrasts
+
+
+Fit: aov(formula = accuracy ~ granularity, data = Dataset)
+
+Quantile = 2.3464
+95% family-wise confidence level
+
+
+Linear Hypotheses:
+                          Estimate  lwr       upr
+phrase - paragraph == 0   -0.027778 -0.044155 -0.011400
+sentence - paragraph == 0  0.002315 -0.014063  0.018692
+sentence - phrase == 0     0.030093  0.013715  0.046470
+
+paragraph    phrase  sentence
+      "b"       "a"       "b"
+
+> anova5 <- aov(steps ~ granularity, data=Dataset)
+
+> summary(anova5)
+              Df Sum Sq Mean Sq F value Pr(>F)
+granularity    2   1502   751.1   73.68 <2e-16 ***
+Residuals   1293  13180    10.2
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+> with(Dataset, numSummary(steps, groups=granularity, statistics=c("mean", "sd")))
+              mean       sd data:n
+paragraph 4.694444 2.527651    432
+phrase    6.469907 4.645085    432
+sentence  3.893519 1.617123    432
+
+> local({
++   .Pairs <- glht(anova5, linfct = mcp(granularity = "Tukey"))
++   print(summary(.Pairs)) # pairwise tests
++   print(confint(.Pairs)) # confidence intervals
++   print(cld(.Pairs)) # compact letter display
++   old.oma <- par(oma=c(0,5,0,0))
++   plot(confint(.Pairs))
++   par(old.oma)
++ })
+
+	 Simultaneous Tests for General Linear Hypotheses
+
+Multiple Comparisons of Means: Tukey Contrasts
+
+
+Fit: aov(formula = steps ~ granularity, data = Dataset)
+
+Linear Hypotheses:
+                          Estimate Std. Error t value Pr(>|t|)
+phrase - paragraph == 0     1.7755     0.2172   8.173 < 0.0001 ***
+sentence - paragraph == 0  -0.8009     0.2172  -3.687 0.000704 ***
+sentence - phrase == 0     -2.5764     0.2172 -11.860 < 0.0001 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+(Adjusted p values reported -- single-step method)
+
+
+	 Simultaneous Confidence Intervals
+
+Multiple Comparisons of Means: Tukey Contrasts
+
+
+Fit: aov(formula = steps ~ granularity, data = Dataset)
+
+Quantile = 2.3465
+95% family-wise confidence level
+
+
+Linear Hypotheses:
+                          Estimate lwr     upr
+phrase - paragraph == 0    1.7755   1.2657  2.2852
+sentence - paragraph == 0 -0.8009  -1.3107 -0.2912
+sentence - phrase == 0    -2.5764  -3.0861 -2.0666
+
+paragraph    phrase  sentence
+      "b"       "c"       "a"
