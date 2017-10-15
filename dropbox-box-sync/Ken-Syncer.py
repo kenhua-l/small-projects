@@ -6,10 +6,40 @@ import os
 import sys
 import datetime
 
-SENSITIVE_FILE_NAME = ''
-folders_to_sync = ['']
-folders_to_ignore = ['']
-db_access_token = ''
+SENSITIVE_FILE_NAME = 'config.dbs'
+SENSITIVE_TOKEN_FILE = 'secret.dbs'
+
+def get_folderList(fileName, method=1):
+    if method==1:
+        folder_arr = []
+        with open(fileName, 'r') as f:
+            for line in f:
+                if line.strip('\n') != "":
+                    folder_arr.append(line.strip('\n'))
+        return folder_arr
+    else:
+        folder_dict = {}
+        with open(fileName, 'r') as f:
+            for line in f:
+                name_id = line.strip('\n').split(', ')
+                folder_dict[name_id[0]] = name_id[1]
+        return folder_dict
+
+def get_secret(key):
+    secret = ''
+    with open(SENSITIVE_TOKEN_FILE, 'r') as f:
+        for line in f:
+            key_val = line.strip('\n').split(' = ')
+            print key_val
+            if key_val[0] == key:
+                secret = key_val[1]
+                break
+    return secret
+
+folders_to_sync = get_folderList('tosync.folder')
+folders_to_ignore = get_folderList('toignore.folder')
+
+db_access_token = get_secret('db_access_token')
 dbx = dropbox.Dropbox(db_access_token)
 
 class Leaf():
@@ -49,9 +79,9 @@ files_to_change = dropbox_list_all()
 
 ###################################### BOX ####################################
 # box auth
-box_client_id=''
-box_client_secret=''
-box_id={}
+box_client_id = get_secret('box_client_id')
+box_client_secret = get_secret('box_client_secret')
+box_id=get_folderList('boxid.folder', 0)
 
 def secret_token(refresh_token):
     payload = {'grant_type':'refresh_token', 'refresh_token':refresh_token, 'client_id':box_client_id, 'client_secret': box_client_secret}
@@ -86,8 +116,6 @@ oauth = boxsdk.OAuth2(
     client_secret=box_client_secret,
     access_token=get_access_token(),
 )
-
-
 
 client = boxsdk.Client(oauth)
 # root_folder = client.folder(folder_id='0').get_items(limit=100, offset=0)
