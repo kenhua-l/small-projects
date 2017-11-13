@@ -90,27 +90,68 @@ public class tc_train {
         // System.out.println(trainingFile + " " + trainClass); //Check
       }
       // System.out.println(numberOfTrainingText);
+      br.close();
     }catch(Exception e1){
         System.err.println(e1 + ": no file to read in readTrainClassList");
+    }
+  }
+  public static double getChiSquareValue(String w, String c){
+    int N00, N01, N10, N11;
+    N00 = N01 = N10 = N11 = 0;
+    // N00 - no w and not in c
+    // N01 - no w but in c
+    // N10 - has w but not in c
+    // N11 - has w and in c
+    for(Map.Entry<String, Map<String, Integer>> vocab : classWordTextNumber.entrySet()){ // Go thru all classes
+      if(!vocab.getKey().equals(c)){
+        int hasWnotC = vocab.getValue().get(w) == null ? 0 : vocab.getValue().get(w);
+        N00 += classTextFrequency.get(c) - hasWnotC;
+        N10 += hasWnotC;
+      }else{
+        N11 = vocab.getValue().get(w) == null ? 0 : vocab.getValue().get(w);
+        N01 += classTextFrequency.get(c) - N11;
+      }
+    }
+
+    // System.out.println("N00 = " + N00);
+    // System.out.println("N01 = " + N01);
+    // System.out.println("N10 = " + N10);
+    // System.out.println("N11 = " + N11);
+    double chi2 = ((N11 + N10 + N01 + N00) * Math.pow((N11 * N00) - (N10 * N01), 2))
+                    / ((N11 + N01) * (N11 + N10) * (N10 + N00) * (N01 + N00));
+    // System.out.println("chi2 = " + chi2);
+    return chi2;
+  }
+
+  public static void writeModel(String fileName){
+    Set<String> classes = classTextFrequency.keySet();
+    BufferedWriter bw = null;
+    try {
+      FileOutputStream fos = new FileOutputStream(fileName);
+      OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8");
+      bw = new BufferedWriter(osw);
+      ////////
+      for(String className : classes){
+        for(String word : vocabulary){
+          double weight = getChiSquareValue(word, className);
+          bw.write(className + " : " + word + " -> " + weight + "\n");
+        }
+      }
+      //////
+      bw.close();
+    } catch(Exception e){
+      System.err.println(e + ": cannot write in writeModel");
     }
   }
 
   public static void main(String[] args){
     // command is java tc_train stopword-list train-class-list model
-    String stopWords = args[0];
+    String stopWordsFile = args[0];
     String trainClass = args[1];
     String modelFileName = args[2];
-    // System.out.println(stopWords + " " + trainClass + " " + modelFileName);
-    setStopWordList(stopWords);
+    // System.out.println(stopWordsFile + " " + trainClass + " " + modelFileName);
+    setStopWordList(stopWordsFile);
     readTrainClassList(trainClass);
-    // for(String word : vocabulary){
-      // System.out.print(word + " ");
-    // }
-    for(Map.Entry<String, Map<String, Integer>> vocab : classWordTextNumber.entrySet()){
-      System.out.println(vocab.getKey() + "->" + vocab.getValue());
-    }
-    for(Map.Entry<String, Integer> freq : classTextFrequency.entrySet()){
-      System.out.println(freq.getKey() + "->" + freq.getValue());
-    }
+    writeModel(modelFileName);
   }
 }
