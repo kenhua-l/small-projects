@@ -1,6 +1,38 @@
 import java.util.*;
 import java.io.*;
 
+// Simplified NeuralNet that only has input and output - no hidden layer
+class NeuralNet {
+  public double[] inputWeight;
+  public double[] outputVector;
+  public NeuralNet(int inputCount, int outputCount){
+    double[] inputVector = new double[inputCount];
+    this.inputWeight = new double[inputCount + 1];
+    this.outputVector = new double[outputCount];
+    System.out.println(Arrays.toString(inputVector));
+    for(int i=0; i<inputCount + 1; i++){
+      this.inputWeight[i] = 0.1;
+    }
+    System.out.println(Arrays.toString(this.inputWeight));
+    System.out.println(Arrays.toString(this.outputVector));
+  }
+
+  public void feedForward(double[] inputVector){
+    double netSum = this.inputWeight[0];
+    // Sum net
+    for(int i=1; i < this.inputWeight.length; i++){
+      netSum += inputVector[i-1] * inputWeight[i];
+    }
+    System.out.println(netSum);
+
+    // Sigmoid
+    double sigmoid = 1 / (1 + Math.pow(Math.E, -netSum));
+    System.out.println(sigmoid);
+
+  }
+
+}
+
 public class tc_train {
   public static Set<String> stopWords = new HashSet<String>();    // Stop words given
   public static Set<String> vocabulary = new HashSet<String>();   // Global vocab list
@@ -123,6 +155,17 @@ public class tc_train {
     return chi2;
   }
 
+  public static void neuralNetLearning(){
+    NeuralNet nn = new NeuralNet(vocabulary.size(), classTextFrequency.keySet().size());
+    double[] input = new double[vocabulary.size()];
+    for(int i=0; i < vocabulary.size(); i++){
+      input[i] = 1.0;
+    }
+    nn.feedForward(input);
+    // NeuralNet nn = new NeuralNet(10, 5);
+
+  }
+
   public static void writeModel(String fileName){
     Set<String> classes = classTextFrequency.keySet();
     BufferedWriter bw = null;
@@ -150,8 +193,12 @@ public class tc_train {
     String trainClass = args[1];
     String modelFileName = args[2];
     // System.out.println(stopWordsFile + " " + trainClass + " " + modelFileName);
+    // First read to set up parameters
     setStopWordList(stopWordsFile);
     readTrainClassList(trainClass);
+
+    // Second read to set up backpropagation
+    neuralNetLearning();
     writeModel(modelFileName);
   }
 }
