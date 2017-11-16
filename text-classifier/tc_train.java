@@ -27,8 +27,8 @@ class NeuralNet {
 
   public double[] feedForward(double[] inputVector){
     double[] outputVector = new double[this.outputCount];
-    System.out.println("inputVectorsize : " + inputVector.length);
-    System.out.println("inputVectorsize : " + inputWeight[0].length);
+    // System.out.println("inputVectorsize : " + inputVector.length);
+    // System.out.println("inputVectorsize : " + inputWeight[0].length);
     for(int i=0; i<this.outputCount; i++){
       double netSum = this.inputWeight[i][0];
       // Sum net
@@ -49,14 +49,15 @@ class NeuralNet {
 }
 
 public class tc_train {
-  public static final int WORD_FREQUENCY_THRESHOLD = 2;
-  public static final double CHI2_THRESHOLD = 10.0;
+  public static final int WORD_FREQUENCY_THRESHOLD = 1;
+  public static final double CHI2_THRESHOLD = 0.0;
+  public static final int FREQUENCY_NORMALIZATION_DENOMINATOR = 500;
 
   public static Set<String> stopWords = new HashSet<String>();    // Stop words given
   public static Set<String> vocabulary = new HashSet<String>();   // Global vocab list
   public static Map<String, Integer> classTextFrequency = new HashMap<String, Integer>(); // Number of text for class
   public static Map<String, Map<String, Integer>> classWordTextNumber = new HashMap<String, Map<String, Integer>>();  // Number of text for word and class
-  public static Set<String> featureVector = new HashSet<String>(); // input
+  public static Vector<String> featureVector; // input
 
   public static void setStopWordList(String fileName){
     try{
@@ -184,26 +185,95 @@ public class tc_train {
 
   public static void neuralNetLearning(String fileName){
     NeuralNet nn = new NeuralNet(featureVector.size(), classTextFrequency.keySet().size());
-    double[] input = new double[featureVector.size()];
-    for(int i=0; i < featureVector.size(); i++){
-      input[i] = 1.0;
+    // System.out.println("I am here 1");
+    try{
+      BufferedReader br = new BufferedReader(new FileReader(fileName));
+      String line = null;
+      while((line=br.readLine()) != null){
+        String[] lineSegment = line.split(" ");
+        String trainingFile = lineSegment[0];
+        String trainClass = lineSegment[1];
+
+        Map<String, Double> trainTextWordFrequency = new HashMap<String, Double>();
+        long numberOfWordsInText = 0;
+        // System.out.println("I am here 2");
+
+        try{
+          BufferedReader tbr = new BufferedReader(new FileReader(trainingFile));
+          String trainLine = null;
+          while((trainLine=tbr.readLine()) != null){
+            trainLine = trainLine.replaceAll("[^a-zA-Z ]", " ").trim().toLowerCase();
+            if(!trainLine.equals("")){
+              String[] rawWordList = trainLine.split("\\s+");
+              for (String word: rawWordList){
+                numberOfWordsInText++;
+                // remove all stop words
+                if(!stopWords.contains(word)){
+                  Stemmer stem = new Stemmer();
+                  stem.add(word.toCharArray(), word.length());
+                  // Stem the word
+                  stem.stem();
+                  String stemmedWord = stem.toString();
+
+                  if(featureVector.contains(stemmedWord)){
+                    if(trainTextWordFrequency.get(stemmedWord) == null){
+                      trainTextWordFrequency.put(stemmedWord, 1.0);
+                    }else{
+                      trainTextWordFrequency.put(stemmedWord, trainTextWordFrequency.get(stemmedWord) + 1.0);
+                    }
+                  }
+
+
+                }
+              }
+            }
+          }
+          tbr.close();
+        }catch(Exception e4){
+          System.err.println(e4 + ": no file to read in neuralNetLearning inner loop");
+        }
+        // System.out.println(trainTextWordFrequency.isEmpty());
+        // for(String key:trainTextWordFrequency.keySet()){
+          // System.out.println(key + " -> " + trainTextWordFrequency.get(key));
+        // }
+
+        // if(numberOfWordsInText <= 100)
+          // System.out.println("numberOfWordsInText : " + numberOfWordsInText);
+
+        // Normalize word count as input
+        double[] featureFrequencyInput = new double[featureVector.size()];
+        for(int i=0; i<featureVector.size(); i++){
+          if(trainTextWordFrequency.get(featureVector.get(i)) == null){
+            featureFrequencyInput[i] = 0;
+          } else {
+            featureFrequencyInput[i] = trainTextWordFrequency.get(featureVector.get(i)) / numberOfWordsInText * FREQUENCY_NORMALIZATION_DENOMINATOR;
+          }
+        }
+
+        nn.feedForward(featureFrequencyInput);
+
+      }
+      br.close();
+    }catch(Exception e3){
+      System.err.println(e3 + ": no file to read in neuralNetLearning outer loop");
     }
-    nn.feedForward(input);
 
-    // for()
-
+    // nn.feedForward(input);
   }
 
   public static void selectFeature(){
     Set<String> classes = classTextFrequency.keySet();
+    Set<String> feactureSelected = new HashSet<String>();
     for(String className : classes){
       for(String word : vocabulary){
         double weight = getChiSquareValue(word, className);
+        // System.out.println(word + " " + weight);
         if(weight > CHI2_THRESHOLD){
-          featureVector.add(word);
+          feactureSelected.add(word);
         }
       }
     }
+    featureVector = new Vector<String>((Collection<String>) feactureSelected);
   }
 
   public static void writeModel(String fileName){
