@@ -5,9 +5,12 @@
 This code is written in Java. Please ensure you have Java installed in your machine to run the code.
 If the java class files are not included, it is good to compile the java files first.
 
+compile porter.java first
+
 `javac tc_train.java`
 
 `javac tc_test.java`
+
 
 
 To build the learning perceptron model with the training file, run the following

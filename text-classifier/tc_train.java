@@ -3,14 +3,14 @@ import java.io.*;
 import java.math.*;
 
 class NeuralNet {
-  public final double INITIAL_WEIGHT = -0.5;
-  public final double LEARNING_RATE = 0.1;
+  private final double INITIAL_WEIGHT = -0.5;
+  private final double LEARNING_RATE = 0.1;
 
-  public double[][] inputHiddenWeight; // 2d matrix of hidden_units x input_vector
-  public double[][] hiddenOutputWeight; // 2d matrix of output x hidden_units
-  public int inputCount;
-  public int outputCount;
-  public int hiddenUnitCount;
+  private double[][] inputHiddenWeight; // 2d matrix of hidden_units x input_vector
+  private double[][] hiddenOutputWeight; // 2d matrix of output x hidden_units
+  private int inputCount;
+  private int outputCount;
+  private int hiddenUnitCount;
 
   public NeuralNet(int inputCount, int outputCount){
     this.inputCount = inputCount + 1;
@@ -30,11 +30,34 @@ class NeuralNet {
         this.hiddenOutputWeight[j][h] = INITIAL_WEIGHT;
       }
     }
-
     // printNeuralNetFriendlyVersion();
   }
 
-  public double perceptronOutput(double[] input, double[] weight){
+  public void setInputHiddenWeight(double[][] weight){
+    if(weight.length == this.hiddenUnitCount && weight[0].length == this.inputCount){
+      this.inputHiddenWeight = weight;
+    }
+  }
+
+  public void setHiddenOutputWeight(double[][] weight){
+    if(weight.length == this.outputCount && weight[0].length == this.hiddenUnitCount){
+      this.hiddenOutputWeight = weight;
+    }
+  }
+
+  public int getHiddenUnitCount(){
+    return this.hiddenUnitCount;
+  }
+
+  public double[][] getInputHiddenWeight(){
+    return this.inputHiddenWeight;
+  }
+
+  public double[][] getHiddenOutputWeight(){
+    return this.hiddenOutputWeight;
+  }
+
+  private double perceptronOutput(double[] input, double[] weight){
     // inputVector has one less element than weightVector
     // inputVector[0] should be 1.0 for w0 to be a constant
     double netSum = 0;
@@ -107,9 +130,7 @@ class NeuralNet {
         // System.out.println(change);
       }
     }
-
     // printNeuralNetFriendlyVersion();
-
     return justFeedForward(inputVector);
   }
 
@@ -211,14 +232,9 @@ public class tc_train{
     double[] inputVector = getInputVector(fileName);
     double[] targetVector = getTargetVector(className);
     double[] outputVector = textClassifier.feedForwardBackLearn(inputVector, targetVector);
+
     System.out.println("Output: "+ Arrays.toString(outputVector));
     System.out.println("Target: "+ Arrays.toString(targetVector));
-    //
-    // System.out.println(inputVector.length);
-    // System.out.println(1 +", "+inputVector[0]);
-    // for(int i=0; i<featureVector.size(); i++){
-    //   System.out.println(featureVector.get(i) +", "+inputVector[i+1]);
-    // }
   }
 
   public static void setStopWordList(String fileName){
@@ -361,7 +377,64 @@ public class tc_train{
   }
 
   public static void neuralNetLearning(String fileName){
-    readTrainClassList(fileName, true);
+    // on basis of iteration
+    for(int i=0; i<5; i++){
+      System.out.println("Training iteration "+i);
+      readTrainClassList(fileName, true);
+    }
+    // readTrainClassList(fileName, true);
+  }
+
+  public static void writeModel(String fileName){
+    int inputCount = featureVector.size();
+    int outputCount = classNames.size();
+    int hiddenCount = textClassifier.getHiddenUnitCount();
+    try{
+      FileOutputStream fos = new FileOutputStream(fileName);
+      OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8");
+      BufferedWriter bw = new BufferedWriter(osw);
+      ////////
+      // write input feature
+      bw.write(inputCount + "\n");
+      for(int i=0; i<inputCount; i++){
+        bw.write(featureVector.get(i) + "\n");
+      }
+
+      // write output class
+      bw.write(outputCount + "\n");
+      for(int i=0; i<outputCount; i++){
+        bw.write(classNames.get(i) + "\n");
+      }
+
+      // write NeuralNet details (hidden layer)
+      bw.write("num-perceptron-hidden-unit " + hiddenCount + "\n");
+
+      // write input-hidden weight
+      bw.write(hiddenCount + " " + (inputCount+1) + "\n");
+      double[][] inWeight = textClassifier.getInputHiddenWeight();
+      for(int h=0; h<hiddenCount; h++){
+        for(int i=0; i<inputCount+1; i++){
+          bw.write(inWeight[h][i] + " ");
+        }
+        bw.write("\n");
+      }
+
+      // write hidden-output weight
+      bw.write(outputCount + " " + hiddenCount + "\n");
+      double[][] hiddenWeight = textClassifier.getHiddenOutputWeight();
+      for(int j=0; j<outputCount; j++){
+        for(int h=0; h<hiddenCount; h++){
+          bw.write(hiddenWeight[j][h] + " ");
+        }
+        bw.write("\n");
+      }
+
+      //////
+      bw.close();
+    }catch(Exception e5){
+      System.err.println(e5 + ": cannot write in writeModel");
+    }
+
   }
 
   public static void main(String[] args){
@@ -369,34 +442,18 @@ public class tc_train{
     String stopWordsFile = args[0];
     String trainClass = args[1];
     String modelFileName = args[2];
-    // System.out.println(stopWordsFile + " " + trainClass + " " + modelFileName);
 
     // First read to set up parameters - chi2 value
     setStopWordList(stopWordsFile);
     readTrainClassList(trainClass, false);
     // remove words occurring less than k times and remove words occurring in all train file
     selectFeature();
-    System.out.println(vocabulary.size() + " " + featureVector.size());
-    // for(int i=0; i< featureVector.size(); i++){
-    //   double occurr1 = classWordTextNumber.get("c1").get(featureVector.get(i)) != null ? classWordTextNumber.get("c1").get(featureVector.get(i)) : 0;
-    //   double occurr2 = classWordTextNumber.get("c2").get(featureVector.get(i)) != null ?  classWordTextNumber.get("c2").get(featureVector.get(i)) : 0;
-    //   double occurr3 = classWordTextNumber.get("c3").get(featureVector.get(i)) != null ?  classWordTextNumber.get("c3").get(featureVector.get(i)) : 0;
-    //   double occurr4 = classWordTextNumber.get("c4").get(featureVector.get(i)) != null ?  classWordTextNumber.get("c4").get(featureVector.get(i)) : 0;
-    //   double occurr5 = classWordTextNumber.get("c5").get(featureVector.get(i)) != null ?  classWordTextNumber.get("c5").get(featureVector.get(i)) : 0;
-    //   double occurr = occurr1 + occurr2 + occurr3 + occurr4 + occurr5;
-    //   if(occurr == 0){
-    //     System.out.println(classWordTextNumber.get("c1").get(featureVector.get(i)));
-    //     System.out.println(classWordTextNumber.get("c2").get(featureVector.get(i)));
-    //     System.out.println(classWordTextNumber.get("c3").get(featureVector.get(i)));
-    //     System.out.println(classWordTextNumber.get("c4").get(featureVector.get(i)));
-    //     System.out.println(classWordTextNumber.get("c5").get(featureVector.get(i)));
-    //   }
-    //   System.out.println(featureVector.get(i) + " -> " + occurr);
-    // }
 
     // Second read to set up backpropagation
     textClassifier = new NeuralNet(featureVector.size(), classNames.size());
     neuralNetLearning(trainClass);
-    // writeModel(modelFileName);
+
+    // Write model file
+    writeModel(modelFileName);
   }
 }
