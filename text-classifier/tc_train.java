@@ -4,9 +4,11 @@ import java.math.*;
 
 // Simplified NeuralNet that only has input and output - no hidden layer
 class NeuralNet {
+  public final double INITIAL_WEIGHT = -0.3;
+  public final double LEARNING_RATE = 0.1;
+
   public double[][] inputWeight; // 2d matrix of output x vector length
   public int outputCount;
-  // public double[] outputVector;
 
   public NeuralNet(int inputCount, int outputCount){
     double[] inputVector = new double[inputCount];
@@ -16,13 +18,9 @@ class NeuralNet {
     // System.out.println("inputVector : " + Arrays.toString(inputVector));
     for(int i=0; i<outputCount; i++){
       for(int j=0; j<inputCount + 1; j++){
-        this.inputWeight[i][j] = 0.1;
+        this.inputWeight[i][j] = INITIAL_WEIGHT;
       }
-      // System.out.println("Vector " + i + " : " +Arrays.toString(this.inputWeight[i]));
     }
-
-    // System.out.println(Arrays.toString(this.inputWeight));
-    // System.out.println(Arrays.toString(this.outputVector));
   }
 
   public double[] feedForward(double[] inputVector){
@@ -30,7 +28,7 @@ class NeuralNet {
     // System.out.println("inputVectorsize : " + inputVector.length);
     // System.out.println("inputVectorsize : " + inputWeight[0].length);
     for(int i=0; i<this.outputCount; i++){
-      double netSum = this.inputWeight[i][0];
+      double netSum = 1 * this.inputWeight[i][0];
       // Sum net
       for(int j=1; j < this.inputWeight[i].length; j++){
         netSum += inputVector[j-1] * inputWeight[i][j];
@@ -40,23 +38,61 @@ class NeuralNet {
       // System.out.println(sigmoid);
       outputVector[i] = sigmoid;
     }
-    System.out.println(Arrays.toString(outputVector));
     return outputVector;
   }
 
-  // public backPropagate
+  public void printWeightMatrix(){
+    for(int i=0; i<outputCount; i++){
+      for(int j=0; j<inputWeight[i].length; j++){
+        System.out.print(inputWeight[i][j] + " ");
+      }
+      System.out.println();
+    }
+  }
+
+  public void backPropagate(double[] inputVector, double[] outputVector, double[] targetVector, boolean printdeets){
+    if(printdeets){
+      System.out.println("OutputVector: " + Arrays.toString(outputVector));
+      System.out.println("TargetVector: " + Arrays.toString(targetVector));
+    }
+
+    // calculate error term
+    double[] outputErrorTerm = new double[targetVector.length];
+    for(int i=0; i<targetVector.length; i++){
+      outputErrorTerm[i] = outputVector[i] * (1 - outputVector[i]) * (targetVector[i] - outputVector[i]);
+      // targetVector[i] - outputVector[i];
+    }
+    if(printdeets)
+      System.out.println("ErrorTermVec: " + Arrays.toString(outputErrorTerm));
+    // System.out.println(inputWeight.length);
+    // System.out.println(targetVector.length);
+    // System.out.println(inputWeight[0].length);
+    // System.out.println(inputVector.length + 1);
+
+    // update weight
+    // for each output unit
+    for(int j=0; j<targetVector.length; j++){
+      // for each weight associated with that output unit
+      inputWeight[j][0] += LEARNING_RATE * outputErrorTerm[j] * 1;
+      for(int i=1; i<inputVector.length + 1; i++){
+        double weightChange = LEARNING_RATE * outputErrorTerm[j] * inputVector[i-1];
+        inputWeight[j][i] += weightChange;
+      }
+    }
+  }
 
 }
 
 public class tc_train {
   public static final int WORD_FREQUENCY_THRESHOLD = 1;
-  public static final double CHI2_THRESHOLD = 0.0;
+  public static final double CHI2_THRESHOLD = 10.0;
   public static final int FREQUENCY_NORMALIZATION_DENOMINATOR = 500;
 
   public static Set<String> stopWords = new HashSet<String>();    // Stop words given
   public static Set<String> vocabulary = new HashSet<String>();   // Global vocab list
   public static Map<String, Integer> classTextFrequency = new HashMap<String, Integer>(); // Number of text for class
   public static Map<String, Map<String, Integer>> classWordTextNumber = new HashMap<String, Map<String, Integer>>();  // Number of text for word and class
+  public static Vector<String> classNames;
   public static Vector<String> featureVector; // input
 
   public static void setStopWordList(String fileName){
@@ -148,6 +184,8 @@ public class tc_train {
     }catch(Exception e1){
         System.err.println(e1 + ": no file to read in readTrainClassList");
     }
+
+    classNames = new Vector<String>((Collection<String>) classTextFrequency.keySet());
   }
 
   public static double getChiSquareValue(String w, String c){
@@ -186,6 +224,9 @@ public class tc_train {
   public static void neuralNetLearning(String fileName){
     NeuralNet nn = new NeuralNet(featureVector.size(), classTextFrequency.keySet().size());
     // System.out.println("I am here 1");
+
+    for(int num=0; num<50; num++){
+      System.out.println("Training iteration: " + num);
     try{
       BufferedReader br = new BufferedReader(new FileReader(fileName));
       String line = null;
@@ -196,7 +237,9 @@ public class tc_train {
 
         Map<String, Double> trainTextWordFrequency = new HashMap<String, Double>();
         long numberOfWordsInText = 0;
-        // System.out.println("I am here 2");
+        double[] targetVector = new double[classNames.size()];
+        targetVector[classNames.indexOf(trainClass)] = 1.0;
+        // System.out.println(Arrays.toString(tartgetVector));
 
         try{
           BufferedReader tbr = new BufferedReader(new FileReader(trainingFile));
@@ -249,8 +292,10 @@ public class tc_train {
             featureFrequencyInput[i] = trainTextWordFrequency.get(featureVector.get(i)) / numberOfWordsInText * FREQUENCY_NORMALIZATION_DENOMINATOR;
           }
         }
-
-        nn.feedForward(featureFrequencyInput);
+        // nn.printWeightMatrix();
+        double[] outputVector = nn.feedForward(featureFrequencyInput);
+        // System.out.println(Arrays.toString(outputVector));
+        nn.backPropagate(featureFrequencyInput, outputVector, targetVector, num==49);
 
       }
       br.close();
@@ -258,7 +303,26 @@ public class tc_train {
       System.err.println(e3 + ": no file to read in neuralNetLearning outer loop");
     }
 
-    // nn.feedForward(input);
+    }
+
+    try{
+      FileOutputStream fos = new FileOutputStream("testWeight.out");
+      OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8");
+      BufferedWriter bw = new BufferedWriter(osw);
+      ////////
+      for(int i=0; i<nn.inputWeight.length; i++){
+        for(int j=0; j<nn.inputWeight[i].length; j++){
+          bw.write(nn.inputWeight[i][j] + " ");
+        }
+        bw.write("\n");
+      }
+      //////
+      bw.close();
+    } catch(Exception e){
+      System.err.println(e + ": cannot write in writeModel");
+    }
+    // nn.printWeightMatrix();
+    System.out.println(classNames.toString());
   }
 
   public static void selectFeature(){
@@ -312,7 +376,6 @@ public class tc_train {
 
     // Second read to set up backpropagation
     neuralNetLearning(trainClass);
-
     writeModel(modelFileName);
   }
 }
