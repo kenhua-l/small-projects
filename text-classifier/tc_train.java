@@ -3,7 +3,7 @@ import java.io.*;
 import java.math.*;
 
 class NeuralNet {
-  public final double INITIAL_WEIGHT = 0.5;
+  public final double INITIAL_WEIGHT = -0.5;
   public final double LEARNING_RATE = 0.1;
 
   public double[][] inputHiddenWeight; // 2d matrix of hidden_units x input_vector
@@ -41,8 +41,23 @@ class NeuralNet {
     for(int i=0; i<input.length; i++){
       netSum += input[i] * weight[i];
     }
+    double binary = netSum > 0 ? 1 : -1;
     double sigmoid = 1 / (1 + Math.pow(Math.E, -netSum));
-    return sigmoid;
+    return binary;
+  }
+
+  public double[] justFeedForward(double[] inputVector){
+    // feed forward
+    double[] hiddenOutput = new double[this.hiddenUnitCount];
+    hiddenOutput[0] = 1.0;
+    for(int h=1; h<this.hiddenUnitCount; h++){
+      hiddenOutput[h] = perceptronOutput(inputVector, this.inputHiddenWeight[h]);
+    }
+    double[] output = new double[this.outputCount];
+    for(int j=0; j<this.outputCount; j++){
+      output[j] = perceptronOutput(hiddenOutput, this.hiddenOutputWeight[j]);
+    }
+    return output;
   }
 
   public double[] feedForwardBackLearn(double[] inputVector, double[] targetVector){
@@ -60,7 +75,8 @@ class NeuralNet {
     // error propagate
     double[] outputError = new double[this.outputCount];
     for(int j=0; j<this.outputCount; j++){
-      outputError[j] = output[j] * (1 - output[j]) * (targetVector[j] - output[j]);
+      // outputError[j] = output[j] * (1 - output[j]) * (targetVector[j] - output[j]);
+      outputError[j] = (targetVector[j] - output[j]);
     }
     // System.out.println("OutputError term: " + Arrays.toString(outputError));
 
@@ -70,28 +86,31 @@ class NeuralNet {
       for(int j=0; j<this.outputCount; j++){
         downstreamError += hiddenOutputWeight[j][h] * outputError[j];
       }
-      hiddenError[h] = hiddenOutput[h] * (1 - hiddenOutput[h]) * downstreamError;
+      // hiddenError[h] = hiddenOutput[h] * (1 - hiddenOutput[h]) * downstreamError;
+      hiddenError[h] = downstreamError;
     }
     // System.out.println("HiddenError term: " + Arrays.toString(hiddenError));
 
     //reweight
-    this.inputHiddenWeight[0]
-    for(int h=0; h<this.hiddenUnitCount; h++){
+    for(int h=1; h<this.hiddenUnitCount; h++){
       for(int i=0; i<this.inputCount; i++){
-        this.inputHiddenWeight[h][i] += LEARNING_RATE * hiddenError[h]
+        double change = LEARNING_RATE * hiddenError[h] * inputVector[i];
+        this.inputHiddenWeight[h][i] += change;
+        // System.out.println(change);
       }
     }
 
     for(int j=0; j<this.outputCount; j++){
       for(int h=0; h<this.hiddenUnitCount; h++){
-        this.hiddenOutputWeight[j][h] = INITIAL_WEIGHT;
+        double change = LEARNING_RATE * outputError[j] * hiddenOutput[h];
+        this.hiddenOutputWeight[j][h] += change;
+        // System.out.println(change);
       }
     }
 
+    // printNeuralNetFriendlyVersion();
 
-    printNeuralNetFriendlyVersion();
-
-    return output;
+    return justFeedForward(inputVector);
   }
 
   public void printNeuralNetFriendlyVersion(){
@@ -181,6 +200,9 @@ public class tc_train{
 
   public static double[] getTargetVector(String className){
     double[] targetVector = new double[classNames.size()];
+    for(int i=0; i<classNames.size(); i++){
+      targetVector[i] = -1.0;
+    }
     targetVector[classNames.indexOf(className)] = 1.0;
     return targetVector;
   }
@@ -189,9 +211,8 @@ public class tc_train{
     double[] inputVector = getInputVector(fileName);
     double[] targetVector = getTargetVector(className);
     double[] outputVector = textClassifier.feedForwardBackLearn(inputVector, targetVector);
-    System.out.println(Arrays.toString(outputVector));
-
-    // System.out.println(Arrays.toString(targetVector));
+    System.out.println("Output: "+ Arrays.toString(outputVector));
+    System.out.println("Target: "+ Arrays.toString(targetVector));
     //
     // System.out.println(inputVector.length);
     // System.out.println(1 +", "+inputVector[0]);
