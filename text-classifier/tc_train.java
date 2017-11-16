@@ -6,32 +6,76 @@ import java.math.*;
 class NeuralNet {
   public final double INITIAL_WEIGHT = -0.3;
   public final double LEARNING_RATE = 0.1;
+  public final int HIDDEN_UNIT = 10;
 
-  public double[][] inputWeight; // 2d matrix of output x vector length
+  public double[][] inputWeight; // 2d matrix of output x hidden_units x input_vector length
+  public double[][] hiddenWeight; // 2d matrix of output x hidden_units x input_vector length
   public int outputCount;
 
   public NeuralNet(int inputCount, int outputCount){
     double[] inputVector = new double[inputCount];
-    this.inputWeight = new double[outputCount][inputCount + 1];
+    this.inputWeight = new double[HIDDEN_UNIT][inputCount + 1];
+    this.hiddenWeight = new double[outputCount][HIDDEN_UNIT];
     this.outputCount = outputCount;
     // this.outputVector = new double[outputCount];
     // System.out.println("inputVector : " + Arrays.toString(inputVector));
     for(int i=0; i<outputCount; i++){
+      for(int j=0; j<HIDDEN_UNIT; j++){
+        this.hiddenWeight[i][j] = INITIAL_WEIGHT;
+      }
+    }
+    for(int i=0; i<HIDDEN_UNIT; i++){
       for(int j=0; j<inputCount + 1; j++){
         this.inputWeight[i][j] = INITIAL_WEIGHT;
       }
     }
   }
 
+  public double perceptronOutput(double[] inputVector, double[] weightVector){
+    // inputVector has one less element than weightVector
+    // inputVector[0] should be 1.0 for w0 to be a constant
+    double netSum = weightVector[0];
+    for(int i=0; i<inputVector.length; i++){
+      netSum += inputVector[i] * weightVector[i+1];
+    }
+    double sigmoid = 1 / (1 + Math.pow(Math.E, -netSum));
+    return sigmoid;
+  }
+
   public double[] feedForward(double[] inputVector){
+    double[] hiddenOutputVector = new double[HIDDEN_UNIT];
     double[] outputVector = new double[this.outputCount];
     // System.out.println("inputVectorsize : " + inputVector.length);
     // System.out.println("inputVectorsize : " + inputWeight[0].length);
-    for(int i=0; i<this.outputCount; i++){
+    System.out.println("Size of inputVector " + inputVector.length + " and size of hiddenweight is " + this.inputWeight[0].length);
+
+    for(int i=0; i<HIDDEN_UNIT; i++){
+      // System.out.println("Size of inputVector " + inputVector.length + " and size of hiddenweight " + i + " is " + this.inputWeight[i].length);
+      System.out.println("Input is: " + Arrays.toString(inputVector));
+      System.out.println("Size of inputVector " + inputVector.length + " and size of hiddenweight is " + this.inputWeight[0].length);
+      System.out.println("Weight is: " + Arrays.toString(this.inputWeight[i]));
+      double unitOutput = perceptronOutput(inputVector, this.inputWeight[i]);
+
+      System.out.println("hidden unit " + i + " is : " + unitOutput);
+    }
+
+    for(int i=0; i<HIDDEN_UNIT; i++){
       double netSum = 1 * this.inputWeight[i][0];
       // Sum net
       for(int j=1; j < this.inputWeight[i].length; j++){
         netSum += inputVector[j-1] * inputWeight[i][j];
+      }
+      // output - Sigmoid function
+      double sigmoid = 1 / (1 + Math.pow(Math.E, -netSum));
+      // System.out.println(sigmoid);
+      hiddenOutputVector[i] = sigmoid;
+    }
+    System.out.println("Hidden unit: " + Arrays.toString(hiddenOutputVector));
+    for(int i=0; i<this.outputCount; i++){
+      double netSum = 1 * this.hiddenWeight[i][0];
+      // Sum net
+      for(int j=1; j < this.hiddenWeight[i].length; j++){
+        netSum += hiddenOutputVector[j-1] * hiddenWeight[i][j];
       }
       // output - Sigmoid function
       double sigmoid = 1 / (1 + Math.pow(Math.E, -netSum));
@@ -43,8 +87,14 @@ class NeuralNet {
 
   public void printWeightMatrix(){
     for(int i=0; i<outputCount; i++){
-      for(int j=0; j<inputWeight[i].length; j++){
-        System.out.print(inputWeight[i][j] + " ");
+      for(int j=0; j<HIDDEN_UNIT; j++){
+        System.out.print(this.hiddenWeight[i][j] + " ");
+      }
+      System.out.println();
+    }
+    for(int i=0; i<HIDDEN_UNIT; i++){
+      for(int j=0; j<this.inputWeight[i].length; j++){
+        System.out.print(this.inputWeight[i][j] + " ");
       }
       System.out.println();
     }
@@ -62,6 +112,25 @@ class NeuralNet {
       outputErrorTerm[i] = outputVector[i] * (1 - outputVector[i]) * (targetVector[i] - outputVector[i]);
       // targetVector[i] - outputVector[i];
     }
+
+    double[] hiddenErrorTerm = new double[HIDDEN_UNIT];
+    double[] hiddenOutputVector = new double[HIDDEN_UNIT];
+    for(int i=0; i<HIDDEN_UNIT; i++){
+      double netSum = 1 * this.inputWeight[i][0];
+      // Sum net
+      for(int j=1; j < this.inputWeight[i].length; j++){
+        netSum += inputVector[j-1] * inputWeight[i][j];
+      }
+      // output - Sigmoid function
+      double sigmoid = 1 / (1 + Math.pow(Math.E, -netSum));
+      // System.out.println(sigmoid);
+      double downstream = 0;
+      for(int j=0; j < targetVector.length; j++){
+        downstream += this.hiddenWeight[j][i] * outputErrorTerm[j];
+      }
+      hiddenErrorTerm[i] = sigmoid * (1-sigmoid) * downstream;
+    }
+
     if(printdeets)
       System.out.println("ErrorTermVec: " + Arrays.toString(outputErrorTerm));
     // System.out.println(inputWeight.length);
@@ -73,10 +142,18 @@ class NeuralNet {
     // for each output unit
     for(int j=0; j<targetVector.length; j++){
       // for each weight associated with that output unit
-      inputWeight[j][0] += LEARNING_RATE * outputErrorTerm[j] * 1;
+      this.hiddenWeight[j][0] += LEARNING_RATE * outputErrorTerm[j] * 1;
+      for(int i=1; i<HIDDEN_UNIT; i++){
+        double weightChange = LEARNING_RATE * outputErrorTerm[j] * hiddenErrorTerm[i-1];
+        this.hiddenWeight[j][i] += weightChange;
+      }
+    }
+    for(int j=0; j<HIDDEN_UNIT; j++){
+      // for each weight associated with that output unit
+      this.inputWeight[j][0] += LEARNING_RATE * hiddenErrorTerm[j] * 1;
       for(int i=1; i<inputVector.length + 1; i++){
-        double weightChange = LEARNING_RATE * outputErrorTerm[j] * inputVector[i-1];
-        inputWeight[j][i] += weightChange;
+        double weightChange = LEARNING_RATE * hiddenErrorTerm[j] * inputVector[i-1];
+        this.inputWeight[j][i] += weightChange;
       }
     }
   }
@@ -85,7 +162,7 @@ class NeuralNet {
 
 public class tc_train {
   public static final int WORD_FREQUENCY_THRESHOLD = 1;
-  public static final double CHI2_THRESHOLD = 10.0;
+  public static final double CHI2_THRESHOLD = 0.0;
   public static final int FREQUENCY_NORMALIZATION_DENOMINATOR = 500;
 
   public static Set<String> stopWords = new HashSet<String>();    // Stop words given
@@ -225,7 +302,7 @@ public class tc_train {
     NeuralNet nn = new NeuralNet(featureVector.size(), classTextFrequency.keySet().size());
     // System.out.println("I am here 1");
 
-    for(int num=0; num<50; num++){
+    for(int num=0; num<10; num++){
       System.out.println("Training iteration: " + num);
     try{
       BufferedReader br = new BufferedReader(new FileReader(fileName));
@@ -238,7 +315,9 @@ public class tc_train {
         Map<String, Double> trainTextWordFrequency = new HashMap<String, Double>();
         long numberOfWordsInText = 0;
         double[] targetVector = new double[classNames.size()];
+        // for(int i=0; i<classNames.size(); i++){
         targetVector[classNames.indexOf(trainClass)] = 1.0;
+        // }
         // System.out.println(Arrays.toString(tartgetVector));
 
         try{
@@ -285,6 +364,7 @@ public class tc_train {
 
         // Normalize word count as input
         double[] featureFrequencyInput = new double[featureVector.size()];
+        // featureFrequencyInput[0] = 1.0;
         for(int i=0; i<featureVector.size(); i++){
           if(trainTextWordFrequency.get(featureVector.get(i)) == null){
             featureFrequencyInput[i] = 0;
@@ -292,10 +372,14 @@ public class tc_train {
             featureFrequencyInput[i] = trainTextWordFrequency.get(featureVector.get(i)) / numberOfWordsInText * FREQUENCY_NORMALIZATION_DENOMINATOR;
           }
         }
+
+        // System.out.println("THE INPUT: "+ Arrays.toString(featureFrequencyInput));
+        // System.out.println("Input size: " + featureFrequencyInput.length + " compared to " + featureVector.size());
         // nn.printWeightMatrix();
         double[] outputVector = nn.feedForward(featureFrequencyInput);
+
         // System.out.println(Arrays.toString(outputVector));
-        nn.backPropagate(featureFrequencyInput, outputVector, targetVector, num==49);
+        nn.backPropagate(featureFrequencyInput, outputVector, targetVector, num==9);
 
       }
       br.close();
@@ -313,6 +397,13 @@ public class tc_train {
       for(int i=0; i<nn.inputWeight.length; i++){
         for(int j=0; j<nn.inputWeight[i].length; j++){
           bw.write(nn.inputWeight[i][j] + " ");
+        }
+        bw.write("\n");
+      }
+
+      for(int i=0; i<nn.hiddenWeight.length; i++){
+        for(int j=0; j<nn.hiddenWeight[i].length; j++){
+          bw.write(nn.hiddenWeight[i][j] + " ");
         }
         bw.write("\n");
       }
