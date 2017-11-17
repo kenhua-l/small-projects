@@ -2,7 +2,7 @@ import java.util.*;
 import java.io.*;
 
 public class tc_test {
-  public static final int FREQUENCY_NORMALIZATION_DENOMINATOR = 500;
+  public static final int FREQUENCY_NORMALIZATION_DENOMINATOR = 100;
 
   public static Set<String> stopWords = new HashSet<String>();    // Stop words given
   public static Vector<String> featureVector = new Vector<String>(); // input feature
@@ -43,30 +43,42 @@ public class tc_test {
 
       // setup NeuralNet
       textClassifier = new NeuralNet(numberOfFeatures, numberOfClasses);
-      int hiddenUnit = Integer.parseInt(br.readLine().trim().split(" ")[1]);
       String[] inputLine = br.readLine().trim().split(" ");
-      int hCount = Integer.parseInt(inputLine[0]);
+      int oCount = Integer.parseInt(inputLine[0]);
       int iCount = Integer.parseInt(inputLine[1]);
-      double[][] inputHiddenWeight = new double[hCount][iCount];
-      for(int h=0; h<hCount; h++){
+      double[][] inputOutputWeight = new double[oCount][iCount];
+      for(int o=0; o<oCount; o++){
         String[] longLine = br.readLine().trim().split(" ");
         for(int i=0; i<iCount; i++){
-          inputHiddenWeight[h][i] = Double.parseDouble(longLine[i]);
+          inputOutputWeight[o][i] = Double.parseDouble(longLine[i]);
         }
       }
-      textClassifier.setInputHiddenWeight(inputHiddenWeight);
+      textClassifier.setInputOutputWeight(inputOutputWeight);
 
-      inputLine = br.readLine().trim().split(" ");
-      int jCount = Integer.parseInt(inputLine[0]);
-      hCount = Integer.parseInt(inputLine[1]);
-      double[][] hiddenOutputWeight = new double[jCount][hCount];
-      for(int j=0; j<jCount; j++){
-        String[] longLine = br.readLine().trim().split(" ");
-        for(int h=0; h<hCount; h++){
-          hiddenOutputWeight[j][h] = Double.parseDouble(longLine[h]);
-        }
-      }
-      textClassifier.setHiddenOutputWeight(hiddenOutputWeight);
+      // int hiddenUnit = Integer.parseInt(br.readLine().trim().split(" ")[1]);
+      // String[] inputLine = br.readLine().trim().split(" ");
+      // int hCount = Integer.parseInt(inputLine[0]);
+      // int iCount = Integer.parseInt(inputLine[1]);
+      // double[][] inputHiddenWeight = new double[hCount][iCount];
+      // for(int h=0; h<hCount; h++){
+      //   String[] longLine = br.readLine().trim().split(" ");
+      //   for(int i=0; i<iCount; i++){
+      //     inputHiddenWeight[h][i] = Double.parseDouble(longLine[i]);
+      //   }
+      // }
+      // textClassifier.setInputHiddenWeight(inputHiddenWeight);
+
+      // inputLine = br.readLine().trim().split(" ");
+      // int jCount = Integer.parseInt(inputLine[0]);
+      // hCount = Integer.parseInt(inputLine[1]);
+      // double[][] hiddenOutputWeight = new double[jCount][hCount];
+      // for(int j=0; j<jCount; j++){
+      //   String[] longLine = br.readLine().trim().split(" ");
+      //   for(int h=0; h<hCount; h++){
+      //     hiddenOutputWeight[j][h] = Double.parseDouble(longLine[h]);
+      //   }
+      // }
+      // textClassifier.setHiddenOutputWeight(hiddenOutputWeight);
       // textClassifier.printNeuralNetFriendlyVersion();
       br.close();
     }catch(Exception e1){

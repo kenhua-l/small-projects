@@ -3,59 +3,77 @@ import java.io.*;
 import java.math.*;
 
 class NeuralNet {
-  private final double INITIAL_WEIGHT = -0.5;
-  private final double LEARNING_RATE = 0.1;
+  private final double INITIAL_WEIGHT = 0.4;
+  private final double LEARNING_RATE = 0.005;
 
-  private double[][] inputHiddenWeight; // 2d matrix of hidden_units x input_vector
-  private double[][] hiddenOutputWeight; // 2d matrix of output x hidden_units
+  // private double[][] inputHiddenWeight; // 2d matrix of hidden_units x input_vector
+  // private double[][] hiddenOutputWeight; // 2d matrix of output x hidden_units
+  private double[][] inputOutputWeight;
   private int inputCount;
   private int outputCount;
-  private int hiddenUnitCount;
+  // private int hiddenUnitCount;
 
   public NeuralNet(int inputCount, int outputCount){
     this.inputCount = inputCount + 1;
     this.outputCount = outputCount;
-    this.hiddenUnitCount = (inputCount / outputCount) + 1;
-    this.inputHiddenWeight = new double[this.hiddenUnitCount][this.inputCount];
-    this.hiddenOutputWeight = new double[this.outputCount][this.hiddenUnitCount];
-
-    for(int h=0; h<this.hiddenUnitCount; h++){
-      for(int i=0; i<this.inputCount; i++){
-        this.inputHiddenWeight[h][i] = INITIAL_WEIGHT;
-      }
-    }
+    // this.hiddenUnitCount = (inputCount / outputCount) + 1;
+    this.inputOutputWeight = new double[this.outputCount][this.inputCount];
+    // this.inputHiddenWeight = new double[this.hiddenUnitCount][this.inputCount];
+    // this.hiddenOutputWeight = new double[this.outputCount][this.hiddenUnitCount];
 
     for(int j=0; j<this.outputCount; j++){
-      for(int h=0; h<this.hiddenUnitCount; h++){
-        this.hiddenOutputWeight[j][h] = INITIAL_WEIGHT;
+      for(int i=0; i<this.inputCount; i++){
+        this.inputOutputWeight[j][i] = INITIAL_WEIGHT;
       }
     }
+
+    // for(int h=0; h<this.hiddenUnitCount; h++){
+    //   for(int i=0; i<this.inputCount; i++){
+    //     this.inputHiddenWeight[h][i] = INITIAL_WEIGHT;
+    //   }
+    // }
+    //
+    // for(int j=0; j<this.outputCount; j++){
+    //   for(int h=0; h<this.hiddenUnitCount; h++){
+    //     this.hiddenOutputWeight[j][h] = INITIAL_WEIGHT;
+    //   }
+    // }
     // printNeuralNetFriendlyVersion();
   }
 
-  public void setInputHiddenWeight(double[][] weight){
-    if(weight.length == this.hiddenUnitCount && weight[0].length == this.inputCount){
-      this.inputHiddenWeight = weight;
+  public void setInputOutputWeight(double[][] weight){
+    if(weight.length == this.outputCount && weight[0].length == this.inputCount){
+      this.inputOutputWeight = weight;
     }
   }
 
-  public void setHiddenOutputWeight(double[][] weight){
-    if(weight.length == this.outputCount && weight[0].length == this.hiddenUnitCount){
-      this.hiddenOutputWeight = weight;
-    }
+  // public void setInputHiddenWeight(double[][] weight){
+  //   if(weight.length == this.hiddenUnitCount && weight[0].length == this.inputCount){
+  //     this.inputHiddenWeight = weight;
+  //   }
+  // }
+  //
+  // public void setHiddenOutputWeight(double[][] weight){
+  //   if(weight.length == this.outputCount && weight[0].length == this.hiddenUnitCount){
+  //     this.hiddenOutputWeight = weight;
+  //   }
+  // }
+  //
+  // public int getHiddenUnitCount(){
+  //   return this.hiddenUnitCount;
+  // }
+
+  public double[][] getInputOutputWeight(){
+    return this.inputOutputWeight;
   }
 
-  public int getHiddenUnitCount(){
-    return this.hiddenUnitCount;
-  }
-
-  public double[][] getInputHiddenWeight(){
-    return this.inputHiddenWeight;
-  }
-
-  public double[][] getHiddenOutputWeight(){
-    return this.hiddenOutputWeight;
-  }
+  // public double[][] getInputHiddenWeight(){
+  //   return this.inputHiddenWeight;
+  // }
+  //
+  // public double[][] getHiddenOutputWeight(){
+  //   return this.hiddenOutputWeight;
+  // }
 
   private double perceptronOutput(double[] input, double[] weight){
     // inputVector has one less element than weightVector
@@ -71,29 +89,34 @@ class NeuralNet {
 
   public double[] justFeedForward(double[] inputVector){
     // feed forward
-    double[] hiddenOutput = new double[this.hiddenUnitCount];
-    hiddenOutput[0] = 1.0;
-    for(int h=1; h<this.hiddenUnitCount; h++){
-      hiddenOutput[h] = perceptronOutput(inputVector, this.inputHiddenWeight[h]);
-    }
+    // double[] hiddenOutput = new double[this.hiddenUnitCount];
+    // hiddenOutput[0] = 1.0;
+    // for(int h=1; h<this.hiddenUnitCount; h++){
+    //   hiddenOutput[h] = perceptronOutput(inputVector, this.inputHiddenWeight[h]);
+    // }
+    // double[] output = new double[this.outputCount];
+    // for(int j=0; j<this.outputCount; j++){
+    //   output[j] = perceptronOutput(hiddenOutput, this.hiddenOutputWeight[j]);
+    // }
     double[] output = new double[this.outputCount];
     for(int j=0; j<this.outputCount; j++){
-      output[j] = perceptronOutput(hiddenOutput, this.hiddenOutputWeight[j]);
+      output[j] = perceptronOutput(inputVector, this.inputOutputWeight[j]);
     }
     return output;
   }
 
   public double[] feedForwardBackLearn(double[] inputVector, double[] targetVector){
     // feed forward
-    double[] hiddenOutput = new double[this.hiddenUnitCount];
-    hiddenOutput[0] = 1.0;
-    for(int h=1; h<this.hiddenUnitCount; h++){
-      hiddenOutput[h] = perceptronOutput(inputVector, this.inputHiddenWeight[h]);
-    }
-    double[] output = new double[this.outputCount];
-    for(int j=0; j<this.outputCount; j++){
-      output[j] = perceptronOutput(hiddenOutput, this.hiddenOutputWeight[j]);
-    }
+    // double[] hiddenOutput = new double[this.hiddenUnitCount];
+    // hiddenOutput[0] = 1.0;
+    // for(int h=1; h<this.hiddenUnitCount; h++){
+    //   hiddenOutput[h] = perceptronOutput(inputVector, this.inputHiddenWeight[h]);
+    // }
+    // double[] output = new double[this.outputCount];
+    // for(int j=0; j<this.outputCount; j++){
+    //   output[j] = perceptronOutput(hiddenOutput, this.hiddenOutputWeight[j]);
+    // }
+    double[] output = justFeedForward(inputVector);
 
     // error propagate
     double[] outputError = new double[this.outputCount];
@@ -102,60 +125,73 @@ class NeuralNet {
       outputError[j] = (targetVector[j] - output[j]);
     }
     // System.out.println("OutputError term: " + Arrays.toString(outputError));
-
-    double[] hiddenError = new double[this.hiddenUnitCount];
-    for(int h=0; h<this.hiddenUnitCount; h++){
-      double downstreamError = 0;
-      for(int j=0; j<this.outputCount; j++){
-        downstreamError += hiddenOutputWeight[j][h] * outputError[j];
-      }
-      // hiddenError[h] = hiddenOutput[h] * (1 - hiddenOutput[h]) * downstreamError;
-      hiddenError[h] = downstreamError;
-    }
+    //
+    // double[] hiddenError = new double[this.hiddenUnitCount];
+    // for(int h=0; h<this.hiddenUnitCount; h++){
+    //   double downstreamError = 0;
+    //   for(int j=0; j<this.outputCount; j++){
+    //     downstreamError += hiddenOutputWeight[j][h] * outputError[j];
+    //   }
+    //   // hiddenError[h] = hiddenOutput[h] * (1 - hiddenOutput[h]) * downstreamError;
+    //   hiddenError[h] = downstreamError;
+    // }
     // System.out.println("HiddenError term: " + Arrays.toString(hiddenError));
 
     //reweight
-    for(int h=1; h<this.hiddenUnitCount; h++){
+    for(int j=1; j<this.outputCount; j++){
       for(int i=0; i<this.inputCount; i++){
-        double change = LEARNING_RATE * hiddenError[h] * inputVector[i];
-        this.inputHiddenWeight[h][i] += change;
+        double change = LEARNING_RATE * outputError[j] * inputVector[i];
+          this.inputOutputWeight[j][i] += change;
         // System.out.println(change);
       }
     }
-
-    for(int j=0; j<this.outputCount; j++){
-      for(int h=0; h<this.hiddenUnitCount; h++){
-        double change = LEARNING_RATE * outputError[j] * hiddenOutput[h];
-        this.hiddenOutputWeight[j][h] += change;
-        // System.out.println(change);
-      }
-    }
+    //
+    // for(int h=1; h<this.hiddenUnitCount; h++){
+    //   for(int i=0; i<this.inputCount; i++){
+    //     double change = LEARNING_RATE * hiddenError[h] * inputVector[i];
+    //     // if(change > 0.05){
+    //       this.inputHiddenWeight[h][i] += change;
+    //     // }
+    //     // System.out.println(change);
+    //   }
+    // }
+    //
+    // for(int j=0; j<this.outputCount; j++){
+    //   for(int h=0; h<this.hiddenUnitCount; h++){
+    //     double change = LEARNING_RATE * outputError[j] * hiddenOutput[h];
+    //     // if(change > 0.05){
+    //       this.hiddenOutputWeight[j][h] += change;
+    //     // }
+    //     // System.out.println(change);
+    //   }
+    // }
     // printNeuralNetFriendlyVersion();
     return justFeedForward(inputVector);
   }
 
-  public void printNeuralNetFriendlyVersion(){
-    System.out.println("InputCount = " + this.inputCount + ", HiddenCount = " + this.hiddenUnitCount + ", OutputCount = " + this.outputCount);
-    System.out.println("Input-hidden: ");
-    for(int h=0; h<this.hiddenUnitCount; h++){
-      for(int i=0; i<this.inputCount; i++){
-        System.out.println(i + "-" + h +" : " + this.inputHiddenWeight[h][i]);
-      }
-    }
-    System.out.println("hidden-output: ");
-    for(int j=0; j<this.outputCount; j++){
-      for(int h=0; h<this.hiddenUnitCount; h++){
-        System.out.println(h + "-" + j +" : " + this.hiddenOutputWeight[j][h]);
-      }
-    }
-
-  }
+  // public void printNeuralNetFriendlyVersion(){
+  //   System.out.println("InputCount = " + this.inputCount + ", HiddenCount = " + this.hiddenUnitCount + ", OutputCount = " + this.outputCount);
+  //   System.out.println("Input-hidden: ");
+  //   for(int h=0; h<this.hiddenUnitCount; h++){
+  //     for(int i=0; i<this.inputCount; i++){
+  //       System.out.println(i + "-" + h +" : " + this.inputHiddenWeight[h][i]);
+  //     }
+  //   }
+  //   System.out.println("hidden-output: ");
+  //   for(int j=0; j<this.outputCount; j++){
+  //     for(int h=0; h<this.hiddenUnitCount; h++){
+  //       System.out.println(h + "-" + j +" : " + this.hiddenOutputWeight[j][h]);
+  //     }
+  //   }
+  //
+  // }
 }
 
 public class tc_train{
-  public static final int WORD_FREQUENCY_THRESHOLD = 1;
-  public static final double CHI2_THRESHOLD = 0.0;
-  public static final int FREQUENCY_NORMALIZATION_DENOMINATOR = 500;
+  public static final int WORD_FREQUENCY_THRESHOLD = 10;
+  public static final double CHI2_THRESHOLD = 15.0;
+  public static final int FREQUENCY_NORMALIZATION_DENOMINATOR = 300;
+  public static final int ITERATION = 8;
 
   public static Set<String> stopWords = new HashSet<String>();    // Stop words given
   public static Set<String> vocabulary = new HashSet<String>();   // Global vocab list
@@ -233,8 +269,8 @@ public class tc_train{
     double[] targetVector = getTargetVector(className);
     double[] outputVector = textClassifier.feedForwardBackLearn(inputVector, targetVector);
 
-    System.out.println("Output: "+ Arrays.toString(outputVector));
-    System.out.println("Target: "+ Arrays.toString(targetVector));
+    // System.out.println("Output: "+ Arrays.toString(outputVector));
+    // System.out.println("Target: "+ Arrays.toString(targetVector));
   }
 
   public static void setStopWordList(String fileName){
@@ -378,17 +414,16 @@ public class tc_train{
 
   public static void neuralNetLearning(String fileName){
     // on basis of iteration
-    for(int i=0; i<5; i++){
+    for(int i=0; i<ITERATION; i++){
       System.out.println("Training iteration "+i);
       readTrainClassList(fileName, true);
     }
-    // readTrainClassList(fileName, true);
   }
 
   public static void writeModel(String fileName){
     int inputCount = featureVector.size();
     int outputCount = classNames.size();
-    int hiddenCount = textClassifier.getHiddenUnitCount();
+    // int hiddenCount = textClassifier.getHiddenUnitCount();
     try{
       FileOutputStream fos = new FileOutputStream(fileName);
       OutputStreamWriter osw = new OutputStreamWriter(fos, "utf-8");
@@ -407,27 +442,37 @@ public class tc_train{
       }
 
       // write NeuralNet details (hidden layer)
-      bw.write("num-perceptron-hidden-unit " + hiddenCount + "\n");
+      // bw.write("num-perceptron-hidden-unit " + hiddenCount + "\n");
 
       // write input-hidden weight
-      bw.write(hiddenCount + " " + (inputCount+1) + "\n");
-      double[][] inWeight = textClassifier.getInputHiddenWeight();
-      for(int h=0; h<hiddenCount; h++){
-        for(int i=0; i<inputCount+1; i++){
-          bw.write(inWeight[h][i] + " ");
-        }
-        bw.write("\n");
-      }
-
-      // write hidden-output weight
-      bw.write(outputCount + " " + hiddenCount + "\n");
-      double[][] hiddenWeight = textClassifier.getHiddenOutputWeight();
+      bw.write(outputCount + " " + (inputCount+1) + "\n");
+      double[][] weight = textClassifier.getInputOutputWeight();
       for(int j=0; j<outputCount; j++){
-        for(int h=0; h<hiddenCount; h++){
-          bw.write(hiddenWeight[j][h] + " ");
+        for(int i=0; i<inputCount+1; i++){
+          bw.write(weight[j][i] + " ");
         }
         bw.write("\n");
       }
+      //
+      // // write input-hidden weight
+      // bw.write(hiddenCount + " " + (inputCount+1) + "\n");
+      // double[][] inWeight = textClassifier.getInputHiddenWeight();
+      // for(int h=0; h<hiddenCount; h++){
+      //   for(int i=0; i<inputCount+1; i++){
+      //     bw.write(inWeight[h][i] + " ");
+      //   }
+      //   bw.write("\n");
+      // }
+      //
+      // // write hidden-output weight
+      // bw.write(outputCount + " " + hiddenCount + "\n");
+      // double[][] hiddenWeight = textClassifier.getHiddenOutputWeight();
+      // for(int j=0; j<outputCount; j++){
+      //   for(int h=0; h<hiddenCount; h++){
+      //     bw.write(hiddenWeight[j][h] + " ");
+      //   }
+      //   bw.write("\n");
+      // }
 
       //////
       bw.close();
