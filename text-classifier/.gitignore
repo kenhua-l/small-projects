@@ -1,1 +1,5 @@
+.gitignore
 tc/
+5-fold-data/
+*.class
+*.out
