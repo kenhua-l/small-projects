@@ -3,8 +3,8 @@ import java.io.*;
 import java.math.*;
 
 class NeuralNet {
-  private final double INITIAL_WEIGHT = 0.4;
-  private final double LEARNING_RATE = 0.005;
+  private final double INITIAL_WEIGHT = -0.5;
+  private final double LEARNING_RATE = 0.05;
 
   // private double[][] inputHiddenWeight; // 2d matrix of hidden_units x input_vector
   // private double[][] hiddenOutputWeight; // 2d matrix of output x hidden_units
@@ -188,10 +188,10 @@ class NeuralNet {
 }
 
 public class tc_train{
-  public static final int WORD_FREQUENCY_THRESHOLD = 10;
-  public static final double CHI2_THRESHOLD = 15.0;
-  public static final int FREQUENCY_NORMALIZATION_DENOMINATOR = 300;
-  public static final int ITERATION = 8;
+  public static final int WORD_FREQUENCY_THRESHOLD = 4;
+  public static final double CHI2_THRESHOLD = 10.83;
+  public static final int FREQUENCY_NORMALIZATION_DENOMINATOR = 260;
+  public static final int ITERATION = 30;
 
   public static Set<String> stopWords = new HashSet<String>();    // Stop words given
   public static Set<String> vocabulary = new HashSet<String>();   // Global vocab list
